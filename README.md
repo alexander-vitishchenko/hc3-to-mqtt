@@ -12,7 +12,14 @@ How to use:
 3. Setup variables for ther Quick Application
    * mqttUrl - URL for connecting to MQTT broker, e.g. "mqtt://192.168.1.100:1883"
    * hc3Auth - login and password for pulling events from Fibaro HC3. Must be encoded with Base64, e.g. "admin:password" -> "YWRtaW46cGFzc3dvcmQ="
-
+4. If you only want to integrate with Home Assistant then you are done :) If need more flexibility and integrate with NodeRed
+   * suggest to install MQTT Explorer for being able to see the topic/message structure
+   * send command messages from Node Red to Fibaro HC3 with topic "homeassistant/<device_type_in_Home_Assistant_terminology>/<device_id_as_shown_at_Fibaro_HC3>/commands/<command>", where <command> depends on a device type
+   ** setValue
+   ** setBrightness 
+   ** setPosition
+   ** setThermostatMode
+   ** setHeatingThermostatSetpoint
 
 P.S. some things are still under development:
    * Device types - thermostat, fan, keyfob, seismometer, accelerometer 
