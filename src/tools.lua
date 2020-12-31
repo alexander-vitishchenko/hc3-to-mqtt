@@ -1,0 +1,218 @@
+local alphabet = {
+    ["А"] = "A",
+    ["Б"] = "B",
+    ["В"] = "V",
+    ["Г"] = "G",
+    ["Д"] = "D",
+    ["Е"] = "E",
+    ["Ж"] = "Zh",
+    ["З"] = "Z",
+    ["И"] = "I",
+    ["І"] = "I",
+    ["Ї"] = "I",
+    ["Й"] = "I",
+    ["К"] = "K",
+    ["Л"] = "L",
+    ["М"] = "M",
+    ["Н"] = "N",
+    ["О"] = "O",
+    ["П"] = "P",
+    ["Р"] = "R",
+    ["С"] = "S",
+    ["Т"] = "T",
+    ["У"] = "U",
+    ["Ф"] = "F",
+    ["Х"] = "H",
+    ["Ч"] = "Ch",
+    ["Ц"] = "C",
+    ["Ш"] = "Sh",
+    ["Щ"] = "Shch",
+    ["И"] = "I",
+    ["Є"] = "E",
+    ["Э"] = "E",
+    ["Ю"] = "Ju",
+    ["Я"] = "Ja",
+    ["а"] = "a",
+    ["б"] = "b",
+    ["в"] = "v",
+    ["г"] = "g",
+    ["д"] = "d",
+    ["е"] = "e",
+    ["~"] = "e",
+    ["ж"] = "zh",
+    ["з"] = "z",
+    ["и"] = "i",
+    ["і"] = "i",
+    ["ї"] = "i",
+    ["й"] = "i",
+    ["к"] = "k",
+    ["л"] = "l",
+    ["м"] = "m",
+    ["н"] = "n",
+    ["о"] = "o",
+    ["п"] = "p",
+    ["р"] = "r",
+    ["с"] = "s",
+    ["т"] = "t",
+    ["у"] = "u",
+    ["ф"] = "f",
+    ["х"] = "h",
+    ["ч"] = "ch",
+    ["ц"] = "c",
+    ["ш"] = "sh",
+    ["щ"] = "shch",
+    ["ы"] = "i",
+    ["ь"] = "'",
+    ["є"] = "e",
+    ["э"] = "e",
+    ["ю"] = "ju",
+    ["я"] = "ja"
+}
+
+function transliterate(input)
+    if (not input) then
+        return "unknown_input_for_transliteration"
+    end
+
+    local output = {}
+    local i = 1
+
+    for p, c in utf8.codes(input) do  
+        local char = utf8.char(c)
+        local outputCharacter = alphabet[char]
+
+        if not outputCharacter then
+        if (string.find(char, "%a") or string.find(char, "%d")) then
+            outputCharacter = char
+        else
+            outputCharacter = "-"
+        end
+
+        end
+        output[i] = outputCharacter
+        i = i + 1
+    end
+
+    --print("RESULT " .. table.concat(output) ) 
+
+    return table.concat(output) 
+end
+
+function extractMetaInfoFromDeviceName(deviceName)
+    local metaInfo = {
+        pureName = deviceName,
+        autoPower = true,
+        turnOffTimeout = 10 * 60,
+        segmentId = -1,
+    }
+    
+    local s, e = string.find(deviceName, "%[.+%]")
+    if s and e then
+        local pureName = string.gsub(string.sub(deviceName, 1, s-1), "%s+$", "")
+        local metaStr = string.sub(deviceName, s+1, e-1)
+
+        metaInfo.pureName = pureName
+ 
+        local attrs = splitStringToNumbers(metaStr, "%.")
+        if attrs[1] == "1" then
+            metaInfo.autoPower = true
+        else
+            metaInfo.autoPower = false
+        end
+
+        if attrs[2] and attrs[2] ~= "-" then 
+            metaInfo.turnOffTimeout = math.ceil(attrs[2] * 60)
+        end
+
+        if attrs[3] and attrs[3] ~= "-" then 
+            metaInfo.segmentId = tonumber(attrs[3])
+            metaInfo.rooms = {}
+
+            local segmentIdsStr = fibaro.getGlobalVariable("segment_" .. metaInfo.segmentId)
+            if segmentIdsStr then
+                local roomIds = splitStringToNumbers(segmentIdsStr, ",")
+                for i,roomIdStr in ipairs(roomIds) do
+                    metaInfo.rooms[i] = roomIdStr
+                end
+            end
+        end
+    else
+        metaInfo.name = deviceName
+    end
+
+    return metaInfo
+end
+
+function splitStringToNumbers(str, sep)
+  local fields = {}
+  str:gsub("([^" .. sep .."]+)",function(c) fields[#fields+1]=c end)
+  return fields
+end
+
+function table_contains_value(tab, val)
+    if not tab then
+        return false
+    end
+    
+    for index, value in ipairs(tab) do
+        if value == val then
+            return true
+        end
+    end
+
+    return false
+end
+
+function getDeviceIdFromTopic(topic)
+    local s, e = string.find(topic, "%d+")
+    --print(topic .. " | " .. tostring(s) .. " | " .. tostring(e))
+    if s then
+            return tonumber(string.sub(topic, s, e))
+    else
+        return 0
+    end
+end
+
+function createRootTopicName(device)
+return "homeassistant/" .. device.haType .. "/" .. device.id
+    --return "homeassistant/" .. device.haType .. "/" .. transliterate(device.roomName) .. "/" .. device.id .. "-" .. transliterate(device.name)
+end
+
+function createGenericEventTopicName(device, eventType, propertyName)
+    if (propertyName) then
+        return createRootTopicName(device) .. "/events/" .. eventType .. "/" .. propertyName
+    else
+        return createRootTopicName(device) .. "/events/" .. eventType
+    end
+end
+
+function createPropertyTopicName(device, propertyName)
+    return createGenericEventTopicName(device, "DevicePropertyUpdatedEvent", propertyName)     
+end
+
+function createCommandTopicName(device, commandName)
+    return createRootTopicName(device) .. "/commands/" .. "set" .. commandName:gsub("^%l", string.upper)
+end
+
+function createHaConfigTopicName(device)
+    return createRootTopicName(device) .. "/config"
+end
+
+function createHaJsonAttributesTopicName(device)
+    return createRootTopicName(device) .. "/config_json_attributes"
+end
+
+function createFibaroEventPayload(device, propertyName, newValue) 
+    -- THIS IS FIBARO EVENT FORMAT => DO NOT CHANGE VARIABLE NAMES
+    local payload = {
+        data = {
+            id = device.id,
+            property = propertyName,
+            newValue = newValue
+        },
+        type = "DevicePropertyUpdatedEvent",
+        created = os.time()
+    }
+
+    return payload
+end
