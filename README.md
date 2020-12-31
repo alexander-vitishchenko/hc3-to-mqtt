@@ -9,7 +9,7 @@ Fibaro HC3 and MQTT integration:
 How to use:
 1. Download hc3_mqtt_bridge.fqa
 2. Import Quick Application to your Fibaro HC3
-3. Setup a few variables for a new Quick Application
+3. Setup variables for ther Quick Application
    * mqttUrl - URL for connecting to MQTT broker, e.g. "mqtt://192.168.1.100:1883"
    * hc3Auth - login and password for pulling events from Fibaro HC3. Must be encoded with Base64, e.g. "admin:password" -> "YWRtaW46cGFzc3dvcmQ="
 
