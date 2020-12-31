@@ -21,7 +21,4 @@ How to use:
       * setThermostatMode
       * setHeatingThermostatSetpoint
 
-P.S. some things are still under development:
-   * Device types - thermostat, fan, keyfob, seismometer, accelerometer 
-   * Code refactoring/scalability improvements for being able to add new features simpler
-   * More testing for fix possible bugs and stability improvements
+P.S. Some things are still under development, like full support for thermostats, fan, keyfob, seismometer and accelerometer. Continue testing for fixing possible defects and further improve stability
