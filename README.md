@@ -15,11 +15,11 @@ How to use:
 4. If you only want to integrate with Home Assistant then you are done :) If need more flexibility and integrate with NodeRed
    * suggest to install MQTT Explorer for being able to see the topic/message structure
    * send command messages from Node Red to Fibaro HC3 with topic "homeassistant/<device_type_in_Home_Assistant_terminology>/<device_id_as_shown_at_Fibaro_HC3>/commands/<command>", where <command> depends on a device type
-   ** setValue
-   ** setBrightness 
-   ** setPosition
-   ** setThermostatMode
-   ** setHeatingThermostatSetpoint
+      * setValue
+      * setBrightness 
+      * setPosition
+      * setThermostatMode
+      * setHeatingThermostatSetpoint
 
 P.S. some things are still under development:
    * Device types - thermostat, fan, keyfob, seismometer, accelerometer 
