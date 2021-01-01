@@ -21,4 +21,4 @@ How to use:
       * setThermostatMode
       * setHeatingThermostatSetpoint
 
-P.S. Some things are still under development, like full support for thermostats, fan, keyfob, seismometer and accelerometer. Continue testing for fixing possible defects and further improve stability
+P.S. Some things are still under development, like full support for thermostats, fan, keyfob, seismometer and accelerometer. Continue testing for fixing possible defects
