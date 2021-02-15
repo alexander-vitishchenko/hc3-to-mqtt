@@ -57,22 +57,72 @@ function QuickApp:establishMqttConnection()
     end
 
     self:debug("Connecting to " .. self:getVariable("mqttUrl") ..  " ...")
+
+    local mqttConnectionParameters = self:getMqttConnectionParameters()
+
+    self:trace("MQTT Connection Parameters: " .. json.encode(mqttConnectionParameters))
+
     local mqttClient = mqtt.Client.connect(
-        self:getVariable("mqttUrl"), 
-        {
-            keepAlivePeriod = 30, 
-            lastWill = {
-                topic = createPropertyTopicName(self.hc3Device, "dead"),
-                payload = "true"
-            }
-        }) 
+                                    self:getVariable("mqttUrl"), 
+                                    mqttConnectionParameters) 
+
     mqttClient:addEventListener('connected', function(event) self:onConnected(event) end)
     mqttClient:addEventListener('closed', function(event) self:onClosed(event) end)
     mqttClient:addEventListener('message', function(event) self:onMessage(event) end)
     mqttClient:addEventListener('error', function(event) self:onError(event) end)    
     mqttClient:addEventListener('subscribed', function(event) self:onSubscribed(event) end)
     mqttClient:addEventListener('published', function(event) self:onPublished(event) end) 
+
     self.mqtt = mqttClient
+end
+
+function QuickApp:getMqttConnectionParameters()
+    local mqttConnectionParameters = {
+        lastWill = {
+            topic = createPropertyTopicName(self.hc3Device, "dead"),
+            payload = "true"
+        }
+    }
+
+    -- MQTT CLIENT ID
+    local mqttClientId = self:getVariable("mqttClientId")
+    if (isEmptyString(mqttClientId)) then
+        mqttConnectionParameters.clientId = "HC3-" .. plugin.mainDeviceId
+    else
+        mqttConnectionParameters.clientId = mqttClientId
+    end
+
+    -- MQTT KEEP ALIVE PERIOD
+    local mqttKeepAlivePeriod = self:getVariable("mqttKeepAlive")
+    if (mqttKeepAlivePeriod) then
+        mqttConnectionParameters.keepAlivePeriod = tonumber(mqttKeepAlivePeriod)
+    else
+        mqttConnectionParameters.keepAlivePeriod = 30
+    end
+
+    -- MQTT AUTH (USERNAME/PASSWORD)
+    local mqttAuth = self:getVariable("mqttAuth")
+    local mqttUsername
+    local mqttPassword
+    if (isEmptyString(mqttAuth)) then
+        self:debug("plain")
+        mqttUsername = self:getVariable("mqttUsername")
+        mqttPassword = self:getVariable("mqttPassword")
+    else 
+        local mqttAuth = self:getVariable("mqttAuth")
+        if (mqttAuth) then
+            mqttUsername, mqttPassword = decodeBase64Auth(mqttAuth)
+        end
+    end
+
+    if (mqttUsername) then
+        mqttConnectionParameters.username = mqttUsername
+    end
+    if (mqttPassword) then
+        mqttConnectionParameters.password = mqttPassword
+    end
+
+    return mqttConnectionParameters
 end
 
 function QuickApp:disconnectFromMqttAndHc3()
@@ -97,11 +147,11 @@ end
 function QuickApp:onError(event)
     self:error("MQTT ERROR: " .. json.encode(event))
     self:turnOff()
-    self:reconnectToMqtt();
+    self:scheduleReconnectToMqtt();
 end
 
-function QuickApp:reconnectToMqtt()
-    self:debug("Try reconnect to MQTT...")
+function QuickApp:scheduleReconnectToMqtt()
+    self:debug("Schedule attempt to reconnect to MQTT...")
     fibaro.setTimeout(10000, function() 
         self:establishMqttConnection()
     end)
@@ -152,7 +202,7 @@ function QuickApp:discoverDevicesAndBroadcastToHa()
 
     self:updateView("availableDevices", "text", "Available devices: " .. #allDevices)
     self:updateView("bridgedDevices", "text", "Bridged devices: " .. bridgedDevices)
-    self:updateView("loadTime" , "text", "Load time: " .. diff .. "s")
+    self:updateView("bootTime" , "text", "Boot time: " .. diff .. "s")
 
     self:debug("Load complete!")
 
@@ -210,7 +260,7 @@ function QuickApp:publishDeviceToMqtt(j)
     local decoyDevice = false
 
     ------------------------------------------------------------------
-    ------- IDENTIFY DEVICE TYPE FOR HOME ASSISTANT (HA)
+    ------- IDENTIFY DEVICE TYPE FOR HOME ASSISTANT
     ------------------------------------------------------------------
     if (fibaroBaseType == "com.fibaro.actor") then
         if (fibaroType == "com.fibaro.binarySwitch") then
