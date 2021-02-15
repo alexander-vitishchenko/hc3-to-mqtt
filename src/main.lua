@@ -57,6 +57,7 @@ function QuickApp:establishMqttConnection()
     end
 
     self:debug("Connecting to " .. self:getVariable("mqttUrl") ..  " ...")
+<<<<<<< HEAD
 
     local mqttConnectionParameters = self:getMqttConnectionParameters()
 
@@ -66,12 +67,24 @@ function QuickApp:establishMqttConnection()
                                     self:getVariable("mqttUrl"), 
                                     mqttConnectionParameters) 
 
+=======
+    local mqttClient = mqtt.Client.connect(
+        self:getVariable("mqttUrl"), 
+        {
+            keepAlivePeriod = 30, 
+            lastWill = {
+                topic = createPropertyTopicName(self.hc3Device, "dead"),
+                payload = "true"
+            }
+        }) 
+>>>>>>> 557e6f1fba7ff83f7a23b747431a701af0fbed22
     mqttClient:addEventListener('connected', function(event) self:onConnected(event) end)
     mqttClient:addEventListener('closed', function(event) self:onClosed(event) end)
     mqttClient:addEventListener('message', function(event) self:onMessage(event) end)
     mqttClient:addEventListener('error', function(event) self:onError(event) end)    
     mqttClient:addEventListener('subscribed', function(event) self:onSubscribed(event) end)
     mqttClient:addEventListener('published', function(event) self:onPublished(event) end) 
+<<<<<<< HEAD
 
     self.mqtt = mqttClient
 end
@@ -125,6 +138,11 @@ function QuickApp:getMqttConnectionParameters()
     return mqttConnectionParameters
 end
 
+=======
+    self.mqtt = mqttClient
+end
+
+>>>>>>> 557e6f1fba7ff83f7a23b747431a701af0fbed22
 function QuickApp:disconnectFromMqttAndHc3()
     self.hc3ConnectionEnabled = false
     self:closeMqttConnection()
@@ -147,11 +165,19 @@ end
 function QuickApp:onError(event)
     self:error("MQTT ERROR: " .. json.encode(event))
     self:turnOff()
+<<<<<<< HEAD
     self:scheduleReconnectToMqtt();
 end
 
 function QuickApp:scheduleReconnectToMqtt()
     self:debug("Schedule attempt to reconnect to MQTT...")
+=======
+    self:reconnectToMqtt();
+end
+
+function QuickApp:reconnectToMqtt()
+    self:debug("Try reconnect to MQTT...")
+>>>>>>> 557e6f1fba7ff83f7a23b747431a701af0fbed22
     fibaro.setTimeout(10000, function() 
         self:establishMqttConnection()
     end)
@@ -202,7 +228,11 @@ function QuickApp:discoverDevicesAndBroadcastToHa()
 
     self:updateView("availableDevices", "text", "Available devices: " .. #allDevices)
     self:updateView("bridgedDevices", "text", "Bridged devices: " .. bridgedDevices)
+<<<<<<< HEAD
     self:updateView("bootTime" , "text", "Boot time: " .. diff .. "s")
+=======
+    self:updateView("loadTime" , "text", "Load time: " .. diff .. "s")
+>>>>>>> 557e6f1fba7ff83f7a23b747431a701af0fbed22
 
     self:debug("Load complete!")
 
@@ -260,7 +290,11 @@ function QuickApp:publishDeviceToMqtt(j)
     local decoyDevice = false
 
     ------------------------------------------------------------------
+<<<<<<< HEAD
     ------- IDENTIFY DEVICE TYPE FOR HOME ASSISTANT
+=======
+    ------- IDENTIFY DEVICE TYPE FOR HOME ASSISTANT (HA)
+>>>>>>> 557e6f1fba7ff83f7a23b747431a701af0fbed22
     ------------------------------------------------------------------
     if (fibaroBaseType == "com.fibaro.actor") then
         if (fibaroType == "com.fibaro.binarySwitch") then
