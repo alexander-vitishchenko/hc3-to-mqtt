@@ -215,7 +215,6 @@ function createFibaroEventPayload(device, propertyName, newValue)
     }
 
     return payload
-<<<<<<< HEAD
 end
 
 function isEmptyString(s)
@@ -265,6 +264,3 @@ function decodeBase64Auth(encoded)
         return nil
     end
 end
-=======
-end
->>>>>>> 557e6f1fba7ff83f7a23b747431a701af0fbed22
