@@ -11,7 +11,6 @@ How to use:
 2. Import Quick Application to your Fibaro HC3
 3. Setup variables for the Quick Application
    * **mqttUrl** - URL for connecting to MQTT broker, e.g. "mqtt://192.168.1.10:1883"
-![image](https://user-images.githubusercontent.com/1070777/107926657-a6cdce00-6f7e-11eb-917c-a66f2cc40e1b.png)
    * **hc3Username** and **hc3Password** - user credentials to access event stream from your Fibaro Home Center 3 (mandatory)
    * **mqttUsername** and **mqttPassword** - user credentials to access your MQTT broker (optional)
 
