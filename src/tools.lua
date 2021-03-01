@@ -143,6 +143,13 @@ function extractMetaInfoFromDeviceName(deviceName)
     return metaInfo
 end
 
+function splitString(str, sep)
+  local fields = {}
+  str:gsub("([^" .. sep .."]+)",function(c) fields[#fields+1]=c:gsub("^%s*(.-)%s*$", "%1") end)
+  return fields
+end
+
+
 function splitStringToNumbers(str, sep)
   local fields = {}
   str:gsub("([^" .. sep .."]+)",function(c) fields[#fields+1]=c end)
@@ -263,4 +270,35 @@ function decodeBase64Auth(encoded)
     else
         return nil
     end
+end
+
+function shallowCopyTo(from, to)
+    local orig_type = type(from)
+    if orig_type == 'table' then
+        for orig_key, orig_value in pairs(from) do
+            to[orig_key] = orig_value
+        end
+    else -- number, string, boolean, etc
+        copy = from
+    end
+end
+
+
+function clone(orig)
+    local orig_type = type(orig)
+    local copy
+    if orig_type == 'table' then
+        copy = {}
+        for orig_key, orig_value in next, orig, nil do
+            copy[clone(orig_key)] = clone(orig_value)
+        end
+        --setmetatable(copy, clone(getmetatable(orig)))
+    else -- number, string, boolean, etc
+        copy = orig
+    end
+    return copy
+end
+
+function inheritFrom(orig)
+    return clone(orig)
 end
