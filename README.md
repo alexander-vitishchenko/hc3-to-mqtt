@@ -13,6 +13,10 @@ How to use:
    * **mqttUrl** - URL for connecting to MQTT broker, e.g. "mqtt://192.168.1.10:1883"
    * **hc3Username** and **hc3Password** - user credentials to access event stream from your Fibaro Home Center 3 (mandatory)
    * **mqttUsername** and **mqttPassword** - user credentials to access your MQTT broker (optional)
+   * **mqttConvention** - comma separated MQTT conventions (optional)
+     * **home-assistant** - support for Home Assistant with autodiscovery (default)
+     * **homie** - support for Homie compatible software (experimental)
+     * **debug** - output verbose Fibaro HC3 events to MQTT, containing as much information about Fibaro HC3 events as possible for debug purposes
 
 4. If you only want to integrate with Home Assistant then you are done :) If need more flexibility and integrate with NodeRed
    * suggest to install MQTT Explorer for being able to see the topic/message structure
