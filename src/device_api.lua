@@ -278,9 +278,38 @@ local fibaroTypeOverride = {
     ["com.fibaro.FGFS101"] = "com.fibaro.floodSensor" 
 }
 
+function getFibaroDevicesByFilter(filter)
+    local filterStr = ""
+
+    local firstParameter = true
+    for i, j in pairs(filter) do
+        if (not firstParameter) then
+            filterStr = filterStr .. "&"
+        end
+        filterStr = filterStr .. i .. "=" .. tostring(j)
+        firstParameter = false
+    end
+
+    print("Device filter URI '" .. "/devices?" .. filterStr .. "'")
+
+    local allDevices = api.get("/devices?" .. filterStr)
+
+    for i, j in ipairs(allDevices) do
+        overrideFibaroDeviceType(j)
+    end
+
+    return allDevices
+end
+
 function getFibaroDeviceById(id)
     local fibaroDevice = api.get("/devices/" .. id)
 
+    overrideFibaroDeviceType(fibaroDevice)
+
+    return fibaroDevice
+end
+
+function overrideFibaroDeviceType(fibaroDevice)
     local overrideType = fibaroTypeOverride[fibaroDevice.type]
     if overrideType then 
         fibaroDevice.type = overrideType
@@ -290,8 +319,6 @@ function getFibaroDeviceById(id)
     if overrideBaseType then 
         fibaroDevice.baseType = overrideBaseType
     end
-
-    return fibaroDevice
 end
 
 -- TODO: com.fibaro.seismometer

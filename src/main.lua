@@ -160,7 +160,10 @@ end
 function QuickApp:discoverDevicesAndBroadcastToHa()
     local startTime = os.time()
 
-    local allDevices = api.get("/devices?enabled=true&visible=true")
+    local allDevices = getFibaroDevicesByFilter({
+        enabled = true,
+        visible = true
+    })
 
     local bridgedDevices = 0
 
@@ -173,6 +176,7 @@ function QuickApp:discoverDevicesAndBroadcastToHa()
             end
         end
     else
+        -- useful to reduce amount information for debug with smaller number of devices
         self:debug("Bridge mode: DEVELOPMENT")
 
         local testDevices = { 
@@ -364,6 +368,12 @@ function QuickApp:dispatchFibaroEventToMqtt(event)
     if (device) then
 
         if (event.type == "DevicePropertyUpdatedEvent") then
+            if (device.bridgeType == "binary_sensor") and (propertyName == "value") then
+                -- Fibaro uses state/value fields inconsistently for binary sensor. Replace value --> state field
+                event.data.property = "state"
+            end
+
+
             for i, j in ipairs(self.mqttConventions) do
                 j:onPropertyUpdateEvent(device, event)
             end
