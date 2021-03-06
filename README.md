@@ -1,5 +1,5 @@
 # hc3-to-mqtt
-Fibaro HC3 and MQTT integration:
+QuickApp for Fibaro HC3 and MQTT integration:
    * Device types - sensors (e.g. motion, door/window), multilevel sensors (e.g. temperature, brightness), switches, light bulbs, dimmers, shutter
    * Bi-directional integration allowing HC3 to publish Z-Wave device state changes to MQTT, and accepting commands from other MQTT clients
    * Integration with Home Assistant with autodiscovery support
