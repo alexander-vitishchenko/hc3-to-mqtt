@@ -10,6 +10,8 @@ PrototypeDevice = {
     bridgeMultilevel = "'bridgeMultilevel' needs to be set",
     bridgeRead = "'bridgeRead' needs to be set",
     bridgeWrite = "'bridgeWrite' needs to be set",
+    bridgeModes = "'bridgeWrite' needs to be set to an array of modes, e.g. 'heat', 'cool'",
+    customPropertySetters = nil -- could be optionally set by child class
 }
 
 function PrototypeDevice:new(fibaroDevice)
@@ -27,33 +29,44 @@ function PrototypeDevice:new(fibaroDevice)
 end
 
 function PrototypeDevice:init(device)
-    -- to be overriden by subclasses when need to set up "bridgeSubtype" property
-end
+    -- needs to be overriden by subclasses if need to initialize custom parameters
+end 
 
-function PrototypeDevice:setState(state)
-    if self.bridgeBinary and self.bridgeWrite then
-        --fibaro.call(self.id, "setState", state)
-        
-        if (state == "true") then
-            print("Turn ON for " .. self.id)
-            fibaro.call(self.id, "turnOn")
-        elseif (state == "false") then
-            print("Turn OFF for " .. self.id)
-            fibaro.call(self.id, "turnOff")
-        else
-            print("Unexpected value: " .. json.encode(event))
-        end
-        
-    else
-        print("WARNING: trying to turn ON undesignated devices")
+function PrototypeDevice:setProperty(propertyName, value)
+    if isEmptyString(value) then
+        return
     end
-end
 
-function PrototypeDevice:setValue(value)
-    if self.bridgeMultilevel and self.bridgeWrite then
-        fibaro.call(self.id, "setValue", value)
+    local customPropertySetter
+    if (self.customPropertySetters ~= nil) then
+        customPropertySetter = self.customPropertySetters[propertyName]
+    end
+
+    if (customPropertySetter == nil) then
+        -- DEFAULT PROPERTY SETTER
+        if (propertyName == "state") then
+            if (value == "true") then
+                print("Turn ON for device #" .. self.id)
+                fibaro.call(self.id, "turnOn")
+            elseif (value == "false") then
+                print("Turn OFF for device #" .. self.id)
+                fibaro.call(self.id, "turnOff")
+            else
+                print("Unexpected value: " .. json.encode(event))
+            end
+
+        else
+            local firstPart = string.upper(string.sub(propertyName, 1, 1))
+            local secondPart = string.sub(propertyName, 2, string.len(propertyName))
+
+            local functionName = "set" .. firstPart .. secondPart
+            print("CALL \"" .. functionName .. "\", with VALUE \"" .. value .. "\" for device #" .. self.id)
+            fibaro.call(self.id, functionName, value)
+        end
     else
-        print("WARNING: trying to turn ON undesignated devices")
+        -- CUSTOM PROPERTY SETTER
+        print("SET \"" .. propertyName .. "\" to \"" .. value .. "\" for device #" .. self.id)
+        customPropertySetter(propertyName, value)
     end
 end
 
@@ -159,7 +172,6 @@ function BinarySensor:init(device)
         device.bridgeSubtype = "smoke"
     else
         print("[BinarySensor.init] Unknown binary sensor")
-        device.bridgeSubtype = nil
     end
 end
 
@@ -202,8 +214,7 @@ function MultilevelSensor:init(device)
     elseif (device.properties.unit == "W" or device.properties.unit == "kW" or device.properties.unit == "kVA") then
         device.bridgeSubtype = "power"
     else
-        print("[MultilevelSensor.init] Unknown multilevel sensor " .. tostring(device.id) .. " " .. tostring(device.name))
-        device.bridgeSubtype = nil
+        print("[MultilevelSensor.init] Unknown multilevel sensor " .. tostring(device.id) .. " " .. tostring(device.name)) 
     end
 end
 
@@ -226,44 +237,78 @@ function Cover.isSupported(fibaroDevice)
     end
 end
 
-function Cover:setState(state)
-    print("[Cover:setState] setState " .. state)
-    if (state == "open") then
-        self:setValue(99)
-    elseif (state == "close") then
-        self:setValue(0)
-    elseif (state == "stop") then
-        fibaro.call(self.id, "stop")
-    else
-        print("Unsupported state")
-    end
-end
-
------------------------------------
--- HELPER FUNCTIONS - IDENTIFY DEVICE BRIDGE TYPE BY LOOKING AT FIBARO DEVICE TYPE
------------------------------------
-
-deviceTypeMappings = {
-    Switch, -- binary switch
-    Cover, -- multilevel switch
-    Light, -- binary light
-    Dimmer, -- multilevel light
-    BinarySensor,
-    MultilevelSensor
-}  
-
-function identifyDevice(fibaroDevice)
-    for i, j in ipairs(deviceTypeMappings) do
-        if (j.isSupported(fibaroDevice)) then
-            return j:new(fibaroDevice)
+function Cover:init(device) 
+    device.customPropertySetters = { }
+    device.customPropertySetters["state"] = function (propertyName, value) 
+        if (value == "open") then
+            fibaro.call(device.id, "setValue", 99)
+        elseif (value == "close") then
+            fibaro.call(device.id, "setValue", 0)
+        elseif (value == "stop") then
+            fibaro.call(device.id, "stop")
+        else
+            print("Unsupported state")
         end
     end
-
-    return nil
 end
 
 -----------------------------------
--- HELPER FUNCTIONS - FIX "WRONG" DEVICE TYPES FROM FIBARO DEVICE API
+-- THERMOSTAT (MULTILEVEL SWITCH)
+-----------------------------------
+
+Thermostat = inheritFrom(PrototypeDevice)
+Thermostat.bridgeType = "climate"
+Thermostat.bridgeBinary = false
+Thermostat.bridgeMultilevel = true
+Thermostat.bridgeRead = true
+Thermostat.bridgeWrite = true 
+
+function Thermostat.isSupported(fibaroDevice)
+    if (fibaroDevice.type == "com.fibaro.hvacSystem") then 
+        return true 
+    else 
+        return false
+    end
+end
+
+function Thermostat:init(device) 
+    for i, mode in ipairs(device.properties.supportedThermostatModes) do
+        device.properties.supportedThermostatModes[i] = string.lower(mode)
+    end
+end
+
+function Thermostat:setMode(mode)
+    fibaro.call(self.id, "setThermostatMode", mode)
+end
+
+function Thermostat:setHeatingThermostatSetpoint(targetTemperature)
+    fibaro.call(self.id, "setHeatingThermostatSetpoint", targetTemperature)
+end
+
+function Thermostat:getTemperatureSensor(allDevices)
+    local device = allDevices[self.id + 1]
+    if (not Thermostat.isTemperatureSensor(device)) then
+        -- *** no laughs, to be refactored :)
+        device = allDevices[self.id + 2]
+    end
+
+    if (Thermostat.isTemperatureSensor(device)) then
+        return device
+    else
+        return nil
+    end
+end
+
+function Thermostat.isTemperatureSensor(device)
+    if ((device ~= nil) and (MultilevelSensor.isSupported(device)) and (device.bridgeSubtype == "temperature")) then
+        return true
+    else
+        return false
+    end
+end
+
+-----------------------------------
+-- HELPER FUNCTIONS - OVERRIDE "WRONG" DEVICE TYPES FROM FIBARO DEVICE API
 -----------------------------------
 
 local fibaroBaseTypeOverride = {
@@ -304,7 +349,7 @@ end
 function getFibaroDeviceById(id)
     local fibaroDevice = api.get("/devices/" .. id)
 
-    overrideFibaroDeviceType(fibaroDevice)
+    overrideFibaroDeviceType(fibaroDevice) 
 
     return fibaroDevice
 end
@@ -321,17 +366,30 @@ function overrideFibaroDeviceType(fibaroDevice)
     end
 end
 
--- TODO: com.fibaro.seismometer
--- TODO: com.fibaro.accelerometer
+-----------------------------------
+-- HELPER FUNCTIONS - IDENTIFY DEVICE BRIDGE TYPE BY LOOKING AT FIBARO DEVICE TYPE
+-----------------------------------
 
--- motion eye => seismometer
---  "type": "com.fibaro.seismometer",
---  "baseType": "com.fibaro.multilevelSensor",
+deviceTypeMappings = {
+    Switch, -- binary switch
+    Cover, -- multilevel switch
+    Light, -- binary light
+    Dimmer, -- multilevel light 
+    BinarySensor,
+    MultilevelSensor,
+    Thermostat
+}  
 
--- motion eye => accelerometer
---  "type": "com.fibaro.accelerometer",
---  "baseType": "com.fibaro.sensor",
+function identifyDevice(fibaroDevice)
+    for i, j in ipairs(deviceTypeMappings) do
+        if (j.isSupported(fibaroDevice)) then
+            local device = j:new(fibaroDevice)
+            if (device.parentId and device.parentId ~= 0) then
+                device.bridgeParent = getFibaroDeviceById(device.parentId)
+            end
+            return device
+        end
+    end
 
--- tamper for flood sensor and other Fibaro sensors
--- "type": "com.fibaro.motionSensor",
--- "baseType": "com.fibaro.securitySensor",
+    return nil
+end

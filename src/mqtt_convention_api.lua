@@ -2,7 +2,7 @@ MqttConventionPrototype = {
     type = "'type' needs to be overriden", 
     mqtt = "MQTT connection must be established first"
 }
-
+ 
 function MqttConventionPrototype:getLastWillMessage() 
     error("function is mandatory for implementation")
 end
@@ -19,7 +19,7 @@ function MqttConventionPrototype:onDeviceRemoved(device)
     error("function is mandatory for implementation")
 end
 
-function MqttConventionPrototype:onPropertyUpdateEvent(device, event)
+function MqttConventionPrototype:onPropertyUpdated(device, event)
     error("function is mandatory for implementation")
 end
 
@@ -35,7 +35,6 @@ end
 -----------------------------------
 -- HOME ASSISTANT 
 -----------------------------------
-
 MqttConventionHomeAssistant = inheritFrom(MqttConventionPrototype) 
 MqttConventionHomeAssistant.type = "Home Assistant"
 MqttConventionHomeAssistant.rootTopic = "homeassistant/"
@@ -51,9 +50,8 @@ function MqttConventionHomeAssistant:getGenericEventTopic(device, eventType, pro
         return self:getDeviceTopic(device) .. "events/" .. eventType
     end
 end
-function MqttConventionHomeAssistant:getPropertyTopic(device, propertyName)
-    return self:getGenericEventTopic(device, "DevicePropertyUpdatedEvent", propertyName)     
-end
+function MqttConventionHomeAssistant:getterTopic(device, propertyName)
+    return self:getGenericEventTopic(device, "DevicePropertyUpdatedEvent", propertyName)end
 function MqttConventionHomeAssistant:getGenericCommandTopic(device, command, propertyName) 
     if (propertyName) then
         return self:getDeviceTopic(device) .. command ..  "/" .. propertyName
@@ -62,13 +60,17 @@ function MqttConventionHomeAssistant:getGenericCommandTopic(device, command, pro
     end
 end
 
-function MqttConventionHomeAssistant:getSetterTopic(device, propertyName)
+function MqttConventionHomeAssistant:setterTopic(device, propertyName)
     return self:getGenericCommandTopic(device, "set", propertyName)
+end
+
+function MqttConventionHomeAssistant:getLastWillAvailabilityTopic()
+    return self.rootTopic .. "hc3-dead"
 end
 
 function MqttConventionHomeAssistant:getLastWillMessage()
     return {
-        topic = self.rootTopic .. "hc3-dead",
+        topic = self:getLastWillAvailabilityTopic(),
         payload = "true"
     }    
 end
@@ -83,18 +85,49 @@ function MqttConventionHomeAssistant:onDisconnected()
 end
 
 function MqttConventionHomeAssistant:onDeviceCreated(device)
+    ------------------------------------------
+    --- AVAILABILITY
+    ------------------------------------------
     local msg = {
-        unique_id = device.fibaroDevice.id,
-        name = device.fibaroDevice.name .. " (" .. device.roomName .. ")",
+        unique_id = tostring(device.id),
+        name = device.name .. " (" .. device.roomName .. ")",
 
-        availability_topic = self:getPropertyTopic(device, "dead"),
-        payload_available = "false",
-        payload_not_available = "true", 
+        availability_mode = "all",
+        availability = {
+            {
+                topic = self:getLastWillAvailabilityTopic(),
+                payload_available = "false",
+                payload_not_available = "true"
+            }
+            ,
+            {
+                topic = self:getterTopic(device, "dead"),
+                payload_available = "false",
+                payload_not_available = "true" 
+            }
+        },
 
         json_attributes_topic = self:getDeviceTopic(device) .. "config_json_attributes" 
     }
 
-    -- Setup "true"/"false" values to be used for device state tracking + JSON parser
+    ------------------------------------------
+    --- PARENT DEVICE INFO
+    ------------------------------------------
+    local parentDevice = device.bridgeParent
+    if parentDevice then
+        msg.device = {
+            identifiers = "hc3-" .. parentDevice.id,
+            name = parentDevice.name,
+            manufacturer = parentDevice.properties.zwaveCompany,
+            model = parentDevice.properties.model, 
+            -- zwave version is used instead of device software version
+            sw_version = parentDevice.properties.zwaveVersion
+        }
+    end
+
+    ------------------------------------------
+    --- USE "TRUE"/"FALSE" VALUE PAYLOAD, instead of "ON"/"OFF"
+    ------------------------------------------
     if (device.bridgeRead) then
         if (device.bridgeBinary and device.bridgeType ~= "cover") then 
             msg.payload_on = "true"
@@ -108,17 +141,17 @@ function MqttConventionHomeAssistant:onDeviceCreated(device)
     ------------------------------------------
     -- Does device have binary state to share?
     if (device.bridgeRead and device.bridgeBinary) then
-        msg.state_topic = self:getPropertyTopic(device, "state")
+        msg.state_topic = self:getterTopic(device, "state")
     end
     -- Does device have multilevel state to share?
     if (device.bridgeRead and device.bridgeMultilevel) then
         if (device.bridgeType == "light") then
-            msg.brightness_state_topic = self:getPropertyTopic(device, "value")
+            msg.brightness_state_topic = self:getterTopic(device, "value")
             msg.brightness_value_template = "{{ value_json.value }}"
         elseif (device.bridgeType == "cover") then
-            msg.position_topic = self:getPropertyTopic(device, "value")
+            msg.position_topic = self:getterTopic(device, "value")
         elseif (device.bridgeType == "sensor") then
-            msg.state_topic = self:getPropertyTopic(device, "value")
+            msg.state_topic = self:getterTopic(device, "value")
         end
     end
 
@@ -127,22 +160,31 @@ function MqttConventionHomeAssistant:onDeviceCreated(device)
     ------------------------------------------
     -- Does device support binary write operations?
     if (device.bridgeWrite and device.bridgeBinary) then
-        msg.command_topic = self:getSetterTopic(device, "state")
+        msg.command_topic = self:setterTopic(device, "state")
     end
     -- Does device support multilevel write operations?
     if (device.bridgeWrite) and (device.bridgeMultilevel) then
         if (device.bridgeType == "light") then
-            msg.brightness_command_topic = self:getSetterTopic(device, "value")
+            msg.brightness_command_topic = self:setterTopic(device, "value")
             msg.brightness_scale = 99
             msg.on_command_type = "brightness"
         elseif (device.bridgeType == "cover") then
-            msg.set_position_topic = self:getSetterTopic(device, "value")
-            msg.position_open = 99 
+            msg.set_position_topic = self:setterTopic(device, "value")
+            msg.position_template = "{{ value_json.value }}"
+            -- value_template is deprecated since Home Assistant Core 2021.6.
+            msg.value_template = nil
+            msg.position_open = 99
             msg.position_closed = 0
 
             msg.payload_open = "open"
             msg.payload_close = "close"
             msg.payload_stop = "stop"
+
+            msg.state_open = "open"
+            msg.state_closed = "closed"
+            msg.state_opening = "opening"
+            msg.state_closing = "closing"
+            msg.state_topic = self:setterTopic(device, "state")
         end
     end
 
@@ -156,7 +198,35 @@ function MqttConventionHomeAssistant:onDeviceCreated(device)
         if (PrototypeDevice.bridgeUnitOfMeasurement ~= device.bridgeUnitOfMeasurement) then
             msg.unit_of_measurement = device.bridgeUnitOfMeasurement
         end
-    end 
+    end
+
+    ------------------------------------------
+    ---- THERMOSTAT SPECIFIC
+    ------------------------------------------
+    if (device.bridgeType == "climate") then
+        msg.modes = device.properties.supportedThermostatModes
+ 
+        msg.temperature_unit = device.properties.unit
+        msg.temp_step = device.properties.heatingThermostatSetpointStep[msg.temperature_unit]
+
+        -- MODE 
+        msg.mode_state_topic = self:getterTopic(device, "thermostatMode")
+        msg.mode_command_topic = self:setterTopic(device, "thermostatMode")
+
+        -- MIX/MAX TEMPERATURE
+        msg.min_temp = device.properties.heatingThermostatSetpointCapabilitiesMin
+        msg.max_temp = device.properties.heatingThermostatSetpointCapabilitiesMax
+
+        -- TARGET TEMPERATURE
+        msg.temperature_state_topic = self:getterTopic(device, "heatingThermostatSetpoint")
+        msg.temperature_command_topic = self:setterTopic(device, "heatingThermostatSetpoint")
+        
+        -- CURRENT TEMPERATURE
+        local temperatureSensorDevice = device:getTemperatureSensor(self.devices)
+        if temperatureSensorDevice then 
+            msg.current_temperature_topic = self:getterTopic(temperatureSensorDevice, "value")
+        end
+    end
 
     self.mqtt:publish(self:getDeviceTopic(device) .. "config", json.encode(msg), {retain = true})
 
@@ -170,53 +240,89 @@ function MqttConventionHomeAssistant:onDeviceRemoved(device)
     )
 end
 
-function MqttConventionHomeAssistant:onPropertyUpdateEvent(device, event)
+function MqttConventionHomeAssistant:onPropertyUpdated(device, event)
     local propertyName = event.data.property
-    local payload = {
-        id = device.id,
-        deviceName = device.name,
-        created = event.created,
-        timestamp = os.date(),
-        roomName = device.roomName
-    }
 
     local value = (type(event.data.newValue) == "number" and event.data.newValue or tostring(event.data.newValue))
 
-    payload.value = string.lower(value)
+    if device.bridgeType == "cover" then 
+        if propertyName == "value" then
+            -- Fibaro doesn't use "state" attribute for covers, so we'll trigger it on behalf of Fibaro based on "value" attribute
+            local state
+            if value < 20 then
+                state = "closed"
+            elseif value > 80 then
+                state = "open"
+            else
+                state = "unknown"
+            end
+
+            if state then
+                local payload = {
+                    id = device.id,
+                    deviceName = device.name,
+                    created = event.created,
+                    timestamp = os.date(),
+                    roomName = device.roomName,
+                    value = state
+                }
+                formattedState = json.encode(payload)
+                --formattedState = state
+                self.mqtt:publish(self:getterTopic(device, "state"), formattedState, {retain = true})
+            end
+        elseif propertyName == "state" then
+            if (value == "unknown") then
+                -- drop event as Fibaro has "Uknnown" value constantly assigned to the "state" attribute 
+                return
+            end
+        end
+    end
+
+    value = string.lower(value)
 
     local formattedPayload
     if (propertyName == "dead") then
-        formattedPayload = tostring(payload.value)
+        formattedPayload = tostring(value)
     else
+        local payload = {
+            id = device.id,
+            deviceName = device.name,
+            created = event.created,
+            timestamp = os.date(),
+            roomName = device.roomName,
+            value = value
+        }
         formattedPayload = json.encode(payload)
     end
 
-    --local simulation = (event.simulation == true)
-
-    self.mqtt:publish(self:getPropertyTopic(device, propertyName), formattedPayload, {retain = true})
+    self.mqtt:publish(self:getterTopic(device, propertyName), formattedPayload, {retain = true})
 end
 
 function MqttConventionHomeAssistant:onCommand(event)
     if (string.find(event.topic, self.rootTopic) == 1) then
+        -- Home Assistant command detected
         local topicElements = splitString(event.topic, "/")
         local deviceId = tonumber(topicElements[3])
         local propertyName = topicElements[5]
 
         local device = self.devices[deviceId]
 
-        if (propertyName == "state") then
-            device:setState(event.payload)
-        elseif (propertyName == "value") then
-            device:setValue(event.payload)
+        local value = event.payload
+
+        if (device.bridgeType == "climate") then
+            -- Fibaro HC3 uses first letter in upper case, and HA relies on lower case
+            local firstPart = string.upper(string.sub(value, 1, 1))
+            local secondPart = string.sub(value, 2, string.len(value))
+            value = firstPart .. secondPart
         end
 
+        device:setProperty(propertyName, value)
     end
 end
 
 -----------------------------------
 -- HOMIE
 -----------------------------------
-
 MqttConventionHomie = inheritFrom(MqttConventionPrototype) 
 MqttConventionHomie.type = "Homie"
 MqttConventionHomie.rootTopic = "homie/"
@@ -232,7 +338,7 @@ function MqttConventionHomie:getGenericEventTopic(device, eventType, propertyNam
         return self:getDeviceTopic(device) .. "events/" .. eventType
     end
 end
-function MqttConventionHomie:getPropertyTopic(device, propertyName)
+function MqttConventionHomie:getterTopic(device, propertyName)
     return self:getGenericEventTopic(device, "DevicePropertyUpdatedEvent", propertyName)     
 end
 function MqttConventionHomie:getGenericCommandTopic(device, command, propertyName) 
@@ -280,7 +386,6 @@ function MqttConventionHomie:onDeviceCreated(device)
             propertyName = propertyName .. " - " .. device.bridgeSubtype
         end
 
-
         if (device.bridgeBinary) then
             properties["state"] = {
                 name = device.bridgeType,
@@ -289,6 +394,7 @@ function MqttConventionHomie:onDeviceCreated(device)
                 retained = true,
             }
         end
+
         if (device.bridgeMultilevel) then
             properties["value"] = {
                 name = device.bridgeType,
@@ -332,7 +438,7 @@ function MqttConventionHomie:onDeviceRemoved(device)
     print("TBD")
 end
 
-function MqttConventionHomie:onPropertyUpdateEvent(device, event)
+function MqttConventionHomie:onPropertyUpdated(device, event)
     local propertyName = event.data.property
 
     local value = (type(event.data.newValue) == "number" and event.data.newValue or tostring(event.data.newValue))
@@ -343,22 +449,15 @@ function MqttConventionHomie:onPropertyUpdateEvent(device, event)
 end
 
 function MqttConventionHomie:onCommand(event)
-    print("[MqttConventionHomie:onCommand]" )
-    print(event.topic)
-    print(event.payload)
     if (string.find(event.topic, self.rootTopic) == 1) then
         local topicElements = splitString(event.topic, "/")
         local deviceId = tonumber(topicElements[2])
-        local propertyName = topicElements[4]
-
         local device = self.devices[deviceId]
 
-        if (propertyName == "state") then
-            device:setState(event.payload)
-        elseif (propertyName == "value") then
-            device:setValue(event.payload)
-        end
+        local propertyName = topicElements[4]
+        local value = event.payload
 
+        device:setProperty(propertyName, value)
     end
 end
 
@@ -374,7 +473,7 @@ function MqttConventionDebug:onDeviceCreated(device)
 end
 function MqttConventionDebug:onDeviceRemoved(device)
 end
-function MqttConventionDebug:onPropertyUpdateEvent(device, event)
+function MqttConventionDebug:onPropertyUpdated(device, event)
 end
 function MqttConventionDebug:onConnected()
 end

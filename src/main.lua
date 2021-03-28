@@ -16,10 +16,12 @@ end
 
 function QuickApp:turnOff()
     self:disconnectFromMqttAndHc3()
+    self:debug("Disconnected from MQTT and HC3")
     self:updateProperty("value", false)
+    self:debug("Turned off HC3-to-MQTT bridge at Fibaro GUI")
 end
 
-function QuickApp:establishMqttConnection()
+function QuickApp:establishMqttConnection() 
     self.devices = {}
 
     -- IDENTIFY WHICH MQTT CONVENTIONS TO BE USED (e.g. Home Assistant, Homio, etc)
@@ -41,7 +43,7 @@ function QuickApp:establishMqttConnection()
     self:trace("MQTT Connection Parameters: " .. json.encode(mqttConnectionParameters))
 
     local mqttClient = mqtt.Client.connect(
-                                    self:getVariable("mqttUrl"), 
+                                    self:getVariable("mqttUrl"),
                                     mqttConnectionParameters) 
 
     mqttClient:addEventListener('connected', function(event) self:onConnected(event) end)
@@ -51,13 +53,13 @@ function QuickApp:establishMqttConnection()
     
     -- skip event handlers to aid higher performance
     --mqttClient:addEventListener('subscribed', function(event) self:onSubscribed(event) end)
-    --mqttClient:addEventListener('published', function(event) self:onPublished(event) end) 
+    --mqttClient:addEventListener('published', function(event) self:onPublished(event) end)
 
     self.mqtt = mqttClient
 end
 
 function QuickApp:getMqttConnectionParameters()
-    local mqttConnectionParameters = { 
+    local mqttConnectionParameters = {
         -- pickup last will from primary MQTT Convention provider
         lastWill = self.mqttConventions[1]:getLastWillMessage()
     }
@@ -79,7 +81,7 @@ function QuickApp:getMqttConnectionParameters()
     end
 
     -- MQTT AUTH (USERNAME/PASSWORD)
-    local mqttAuth = self:getVariable("mqttAuth")
+    local mqttAuth = self:getVariable("mqttAuth") 
     local mqttUsername
     local mqttPassword
     if (isEmptyString(mqttAuth)) then
@@ -109,28 +111,12 @@ end
 
 function QuickApp:closeMqttConnection()
     for i, j in ipairs(self.mqttConventions) do
-        j:onDisconnected()
+        if (j.mqtt ~= MqttConventionPrototype.mqtt) then
+            j:onDisconnected()
+        end
     end
 
     self.mqtt:disconnect()
-end
-
-function QuickApp:onConnected(event)
-    self:debug("MQTT connection established")
-
-    for i, j in ipairs(self.mqttConventions) do
-        j.mqtt = self.mqtt
-        j.devices = self.devices
-
-        j:onConnected()
-    end
-
-    self:discoverDevicesAndBroadcastToHa()
-
-    self.hc3ConnectionEnabled = true
-    self:scheduleHc3EventsFetcher()
-
-    self:updateProperty("value", true)
 end
 
 function QuickApp:onClosed(event)
@@ -144,66 +130,59 @@ function QuickApp:onError(event)
 end
 
 function QuickApp:scheduleReconnectToMqtt()
-    self:debug("Schedule attempt to reconnect to MQTT...")
     fibaro.setTimeout(10000, function() 
+        self:debug("Attempt to reconnect to MQTT...")
         self:establishMqttConnection()
     end)
 end
 
 function QuickApp:onMessage(event)
     for i, j in ipairs(self.mqttConventions) do
-        j.mqtt = self.mqtt
         j:onCommand(event)
     end
 end
- 
-function QuickApp:discoverDevicesAndBroadcastToHa()
-    local startTime = os.time()
 
-    local allDevices = getFibaroDevicesByFilter({
-        enabled = true,
-        visible = true
-    })
+function QuickApp:onConnected(event)
+    self:debug("MQTT connection established")
 
-    local bridgedDevices = 0
-
-    local developmentModeStr = self:getVariable("developmentMode")
-    if ((not developmentModeStr) or (developmentModeStr ~= "true")) then
-        self:debug("Bridge mode: PRODUCTION")
-        for i, j in pairs(allDevices) do
-            if (self:identifyAndPublishDeviceToMqtt(j)) then
-                bridgedDevices = bridgedDevices + 1
-            end
-        end
-    else
-        -- useful to reduce amount information for debug with smaller number of devices
-        self:debug("Bridge mode: DEVELOPMENT")
-
-        local testDevices = { 
-            getFibaroDeviceById(42), -- switch,
-            getFibaroDeviceById(260), -- iPad screen
-            getFibaroDeviceById(287), -- door sensor
-            getFibaroDeviceById(54), -- motion sensor
-            getFibaroDeviceById(92), -- roller shutter
-            getFibaroDeviceById(78), -- dimmer
-            getFibaroDeviceById(66), -- temperature
-            getFibaroDeviceById(56), -- light sensor (lux)
-            getFibaroDeviceById(245) -- volts
-        }
-
-        for i, j in pairs(testDevices) do
-            if (self:identifyAndPublishDeviceToMqtt(j)) then
-                bridgedDevices = bridgedDevices + 1
-            end
-        end
+    for _, mqttConvention in ipairs(self.mqttConventions) do
+        mqttConvention.mqtt = self.mqtt
+        mqttConvention.devices = self.devices
+        mqttConvention:onConnected()
     end
 
-    local endTime = os.time()
-    local diff = endTime - startTime  
+    self:discoverDevicesAndPublishToMqtt()
 
-    self:updateView("availableDevices", "text", "Available devices: " .. #allDevices)
+    self.hc3ConnectionEnabled = true
+    self:scheduleHc3EventsFetcher()
 
-    self:updateView("bridgedDevices", "text", "Bridged devices: " .. bridgedDevices)
+    self:updateProperty("value", true)
+end
+
+function QuickApp:identifyAndPublishDeviceToMqtt(fibaroDevice)
+    local bridgedDevice = identifyDevice(fibaroDevice) 
+    self:publishDeviceToMqtt(bridgedDevice)
+end
+
+function QuickApp:discoverDevicesAndPublishToMqtt()
+    local startTime = os.time()
+
+    local fibaroDevices = self:discoverDevices()
+    self:identifyDevices(fibaroDevices)
+
+    for _, device in pairs(self.devices) do
+        self:publishDeviceToMqtt(device)
+    end
+
+    local diff = os.time() - startTime   
+
+    local bridgedDevices = 0
+    for _, _ in pairs(self.devices) do
+        bridgedDevices = bridgedDevices + 1
+    end
+    
+    self:updateView("availableDevices", "text", "Available devices: " .. #fibaroDevices)
+    self:updateView("bridgedDevices", "text", "Bridged devices: " .. bridgedDevices) 
     self:updateView("bootTime" , "text", "Boot time: " .. diff .. "s")
 
     self:debug("----------------------------------")
@@ -213,24 +192,60 @@ function QuickApp:discoverDevicesAndBroadcastToHa()
     return haDevices
 end
 
-function QuickApp:identifyAndPublishDeviceToMqtt(fibaroDevice)
-    ------------------------------------------------------------------
-    ------- IDENTIFY DEVICE TYPE
-    ------------------------------------------------------------------
+function QuickApp:discoverDevices()
+    local fibaroDevices
 
-    local device = identifyDevice(fibaroDevice) 
-    if (device) then
-        self:debug("Device " .. self:getDeviceDescription(device) .. " identified as " .. device.bridgeType)
-        self.devices[device.id] = device
+    local developmentModeStr = self:getVariable("developmentMode")
+    if ((not developmentModeStr) or (developmentModeStr ~= "true")) then
+        self:debug("Bridge mode: PRODUCTION")
+
+        fibaroDevices = getFibaroDevicesByFilter({
+            enabled = true,
+            visible = true
+        })
     else
-        self:debug("Couldn't recognize device #" .. fibaroDevice.id .. " - " .. fibaroDevice.name)
-        return 
+        -- useful to reduce amount information for debug with smaller number of devices
+        self:debug("Bridge mode: DEVELOPMENT")
+
+        fibaroDevices = {
+            getFibaroDeviceById(41), -- switch Onyx light,
+            getFibaroDeviceById(42), -- switch Fan,
+            getFibaroDeviceById(260), -- iPad screen
+            getFibaroDeviceById(287), -- door sensor
+            getFibaroDeviceById(54), -- motion sensor
+            getFibaroDeviceById(92), -- roller shutter
+            getFibaroDeviceById(78), -- dimmer
+            getFibaroDeviceById(66), -- temperature sensor
+            getFibaroDeviceById(56), -- light sensor (lux)
+            getFibaroDeviceById(245), -- volts
+            getFibaroDeviceById(105), -- on/off thermostat from CH
+            getFibaroDeviceById(106), -- temperature sensor
+            getFibaroDeviceById(120), -- IR thermostat from CH
+            getFibaroDeviceById(122), -- temperature sensor
+            getFibaroDeviceById(335), -- on/off thermostat from Qubino
+            getFibaroDeviceById(336) -- temperature sensor 
+        }
     end
 
+    return fibaroDevices 
+end
+
+function QuickApp:identifyDevices(fibaroDevices)
+    for _, fibaroDevice in ipairs(fibaroDevices) do
+        local device = identifyDevice(fibaroDevice)
+        if (device) then
+            self:debug("Device " .. self:getDeviceDescription(device) .. " identified as " .. device.bridgeType)
+            self.devices[device.id] = device
+        else
+            self:debug("Couldn't recognize device #" .. fibaroDevice.id .. " - " .. fibaroDevice.name)
+        end
+    end
+end
+
+function QuickApp:publishDeviceToMqtt(device)
     ------------------------------------------------------------------
     ------- ANNOUNCE DEVICE EXISTANCE
     ------------------------------------------------------------------
-
     for i, j in ipairs(self.mqttConventions) do
         j:onDeviceCreated(device)
     end
@@ -238,16 +253,11 @@ function QuickApp:identifyAndPublishDeviceToMqtt(fibaroDevice)
     ------------------------------------------------------------------
     ------- ANNOUNCE DEVICE CURRENT STATE => BY SIMULATING HC3 EVENTS
     ------------------------------------------------------------------
-
     self:simulatePropertyUpdate(device, "dead", device.properties.dead)
-    if (device.properties.state ~= nil) then
-        self:simulatePropertyUpdate(device, "state", device.properties.state)
-    end
-    if (device.properties.value ~= nil) then
-        self:simulatePropertyUpdate(device, "value", device.properties.value)
-    end
-
-    return device
+    self:simulatePropertyUpdate(device, "state", device.properties.state)
+    self:simulatePropertyUpdate(device, "value", device.properties.value)
+    self:simulatePropertyUpdate(device, "heatingThermostatSetpoint", device.properties.heatingThermostatSetpoint)
+    self:simulatePropertyUpdate(device, "thermostatMode", device.properties.thermostatMode)
 end
 
 function QuickApp:onPublished(event)
@@ -328,10 +338,12 @@ function QuickApp:readHc3EventAndScheduleFetcher()
     })
 end
 
-function QuickApp:simulatePropertyUpdate(device, propertyName, payload)
-    local event = createFibaroEventPayload(device, propertyName, payload)
-    event.simulation = true
-    self:dispatchFibaroEventToMqtt(event)
+function QuickApp:simulatePropertyUpdate(device, propertyName, value)
+    if value ~= nil then
+        local event = createFibaroEventPayload(device, propertyName, value)
+        event.simulation = true
+        self:dispatchFibaroEventToMqtt(event)
+    end
 end
 
 function QuickApp:dispatchFibaroEventToMqtt(event)
@@ -352,7 +364,7 @@ function QuickApp:dispatchFibaroEventToMqtt(event)
         -- deviceId is must have for processing logic
         self:warning("No device id for " .. json.encode(event))
         return
-    end
+    end 
     
     local propertyName = event.data.property
     if not propertyName then
@@ -368,20 +380,21 @@ function QuickApp:dispatchFibaroEventToMqtt(event)
     if (device) then
 
         if (event.type == "DevicePropertyUpdatedEvent") then
+
+            -- *** OVERRIDE FIBARO PROPERTY NAMES, FOR BEING MORE CONSISTENT AND THUS EASIER TO HANDLE 
             if (device.bridgeType == "binary_sensor") and (propertyName == "value") then
                 -- Fibaro uses state/value fields inconsistently for binary sensor. Replace value --> state field
                 event.data.property = "state"
             end
 
-
             for i, j in ipairs(self.mqttConventions) do
-                j:onPropertyUpdateEvent(device, event)
+                j:onPropertyUpdated(device, event)
             end
         elseif (event.type == "DeviceModifiedEvent") then
             self:dispatchDeviceModifiedEvent(device)
         elseif (event.type == "DeviceCreatedEvent") then
             self:dispatchDeviceCreatedEvent(device)
-        elseif (event.type == "DeviceRemovedEvent") then
+        elseif (event.type == "DeviceRemovedEvent") then 
             self:dispatchDeviceRemovedEvent(device)
         elseif (event.type == "DeviceActionRanEvent") then
             if (event.data.actionName == "turnOn" or event.data.actionName == "turnOff") then
@@ -424,11 +437,11 @@ function QuickApp:dispatchPropertyUpdateEvent(device, event, payload, propertyNa
 end
 
 function QuickApp:dispatchDeviceCreatedEvent(device)
-    local fibaroDeviceInfo = api.get("/devices/" .. device.id)
+    local fibaroDevice = api.get("/devices/" .. device.id)
 
-    if (fibaroDeviceInfo.visible and fibaroDeviceInfo.enabled) then
-        self:debug("Device created " .. json.encode(fibaroDeviceInfo))
-        self:identifyAndPublishDeviceToMqtt(fibaroDeviceInfo)
+    if (fibaroDevice.visible and fibaroDevice.enabled) then
+        self:debug("Device created " .. json.encode(fibaroDevice))
+        self:identifyAndPublishDeviceToMqtt(fibaroDevice)
     end
 end
 
