@@ -76,12 +76,12 @@ function MqttConventionHomeAssistant:getLastWillMessage()
 end
 
 function MqttConventionHomeAssistant:onConnected()
-    self.mqtt:publish(self.rootTopic .. "hc3-dead", "false")
+    self.mqtt:publish(self.rootTopic .. "hc3-dead", "false", {retain = true})
     self.mqtt:subscribe(self.rootTopic .. "+/+/set/+")
 end
 
 function MqttConventionHomeAssistant:onDisconnected()
-    self.mqtt:publish(self.rootTopic .. "hc3-dead", "true")
+    self.mqtt:publish(self.rootTopic .. "hc3-dead", "true", {retain = true})
 end
 
 function MqttConventionHomeAssistant:onDeviceCreated(device)
@@ -192,7 +192,7 @@ function MqttConventionHomeAssistant:onDeviceCreated(device)
     ---- SENSOR SPECIFIC
     ------------------------------------------
     if (device.bridgeType == "binary_sensor" or device.bridgeType == "sensor") then
-        if (PrototypeDevice.bridgeUnitOfMeasurement ~= device.bridgeSubtype) then
+        if (PrototypeDevice.bridgeSubtype ~= device.bridgeSubtype) then
             msg.device_class = device.bridgeSubtype
         end
         if (PrototypeDevice.bridgeUnitOfMeasurement ~= device.bridgeUnitOfMeasurement) then
@@ -356,7 +356,8 @@ end
 function MqttConventionHomie:getLastWillMessage() 
     return {
         topic = self.rootTopic .. "hc3-dead",
-        payload = "true"
+        payload = "true",
+        lastWill = true
     }    
 end
 
@@ -382,7 +383,7 @@ function MqttConventionHomie:onDeviceCreated(device)
 
     if (device.bridgeRead) then
         local propertyName = device.bridgeType
-        if (device.bridgeSubtype ~= PrototypeDevice.bridgeSubtype) then
+        if (PrototypeDevice.bridgeSubtype ~= device.bridgeSubtype) then
             propertyName = propertyName .. " - " .. device.bridgeSubtype
         end
 

@@ -21,7 +21,7 @@ function PrototypeDevice:new(fibaroDevice)
 
     device.fibaroDevice = fibaroDevice
     
-    device.roomName = fibaro.getRoomNameByDeviceID(device.id)
+    device.roomName = tostring(fibaro.getRoomNameByDeviceID(device.id))
 
     self:init(device)
 
@@ -156,6 +156,7 @@ function BinarySensor:init(device)
     -- set unit of measurement
     device.bridgeUnitOfMeasurement = device.properties.unit
 
+    -- ToDo: refactor with mappings
     if (device.type == "com.fibaro.motionSensor") or (device.baseType == "com.fibaro.motionSensor") then
         device.bridgeSubtype = "motion"
     elseif (device.baseType == "com.fibaro.floodSensor") then
@@ -202,19 +203,24 @@ function MultilevelSensor:init(device)
     device.bridgeUnitOfMeasurement = device.properties.unit
 
     -- initialize subtype
+    -- ToDo: refactor with mappings
     if (device.type == "com.fibaro.temperatureSensor") then
         device.bridgeSubtype = "temperature"
         device.bridgeUnitOfMeasurement = "°" .. device.properties.unit
     elseif (device.type == "com.fibaro.lightSensor") then
         device.bridgeSubtype = "illuminance"
+    elseif (device.type == "com.fibaro.humiditySensor") then 
+        device.bridgeSubtype = "humidity"
     elseif (device.properties.unit == "V") then
         device.bridgeSubtype = "voltage"
     elseif (device.properties.unit == "A") then
         device.bridgeSubtype = "current"
     elseif (device.properties.unit == "W" or device.properties.unit == "kW" or device.properties.unit == "kVA") then
         device.bridgeSubtype = "power"
+    elseif (device.properties.unit == "min(s)") then
+        device.bridgeSubtype = "battery"
     else
-        print("[MultilevelSensor.init] Unknown multilevel sensor " .. tostring(device.id) .. " " .. tostring(device.name)) 
+        print("[MultilevelSensor.init] Unknown multilevel sensor " .. tostring(device.id) .. " " .. tostring(device.name) .. " " .. device.properties.unit)
     end
 end
 
@@ -313,14 +319,16 @@ end
 
 local fibaroBaseTypeOverride = {
     ["com.fibaro.FGR"] = "com.fibaro.baseShutter",
-    ["com.fibaro.FGMS001"] = "com.fibaro.motionSensor"
+    ["com.fibaro.FGMS001"] = "com.fibaro.motionSensor",
+    ["com.fibaro.FGWP"] = "com.fibaro.binarySwitch"
 }
 
 local fibaroTypeOverride = { 
     ["com.fibaro.FGKF601"] = "com.fibaro.keyFob",
     ["com.fibaro.FGD212"] = "com.fibaro.dimmer",
     ["com.fibaro.FGMS001v2"] = "com.fibaro.motionSensor",
-    ["com.fibaro.FGFS101"] = "com.fibaro.floodSensor" 
+    ["com.fibaro.FGFS101"] = "com.fibaro.floodSensor",
+    ["com.fibaro.FGWP102"] = "com.fibaro.binarySwitch"
 }
 
 function getFibaroDevicesByFilter(filter)
@@ -349,12 +357,21 @@ end
 function getFibaroDeviceById(id)
     local fibaroDevice = api.get("/devices/" .. id)
 
+    return getFibaroDeviceByInfo(fibaroDevice)
+end
+
+function getFibaroDeviceByInfo(info)
+    local fibaroDevice = info
+
     overrideFibaroDeviceType(fibaroDevice) 
 
     return fibaroDevice
 end
 
 function overrideFibaroDeviceType(fibaroDevice)
+    if (not fibaroDevice) or (not fibaroDevice.type) then
+        return
+    end
     local overrideType = fibaroTypeOverride[fibaroDevice.type]
     if overrideType then 
         fibaroDevice.type = overrideType
