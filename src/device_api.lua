@@ -86,7 +86,7 @@ Switch.bridgeRead = true
 Switch.bridgeWrite = true
 
 function Switch.isSupported(fibaroDevice)
-    if (fibaroDevice.type == "com.fibaro.binarySwitch") and not table_contains_value(fibaroDevice.interfaces, "light") then
+    if ((fibaroDevice.baseType == "com.fibaro.binarySwitch") or (fibaroDevice.type == "com.fibaro.binarySwitch")) and not table_contains_value(fibaroDevice.interfaces, "light") then
         return true
     else 
         return false
@@ -105,7 +105,7 @@ Light.bridgeRead = true
 Light.bridgeWrite = true
 
 function Light.isSupported(fibaroDevice)
-    if (fibaroDevice.type == "com.fibaro.binarySwitch") and table_contains_value(fibaroDevice.interfaces, "light")      then
+    if ((fibaroDevice.baseType == "com.fibaro.binarySwitch") or (fibaroDevice.type == "com.fibaro.binarySwitch")) and table_contains_value(fibaroDevice.interfaces, "light") then
         return true
     else 
         return false
@@ -376,7 +376,7 @@ function overrideFibaroDeviceType(fibaroDevice)
     if overrideType then 
         fibaroDevice.type = overrideType
     end
-
+    
     local overrideBaseType = fibaroBaseTypeOverride[fibaroDevice.baseType]
     if overrideBaseType then 
         fibaroDevice.baseType = overrideBaseType
@@ -404,6 +404,7 @@ function identifyDevice(fibaroDevice)
             if (device.parentId and device.parentId ~= 0) then
                 device.bridgeParent = getFibaroDeviceById(device.parentId)
             end
+
             return device
         end
     end

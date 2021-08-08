@@ -436,7 +436,6 @@ function MqttConventionHomie:onDeviceCreated(device)
 end
 
 function MqttConventionHomie:onDeviceRemoved(device)
-    print("TBD")
 end
 
 function MqttConventionHomie:onPropertyUpdated(device, event)

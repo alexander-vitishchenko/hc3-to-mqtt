@@ -67,7 +67,7 @@ function QuickApp:getMqttConnectionParameters()
     -- MQTT CLIENT ID
     local mqttClientId = self:getVariable("mqttClientId")
     if (isEmptyString(mqttClientId)) then
-        mqttConnectionParameters.clientId = "HC3-" .. plugin.mainDeviceId
+        mqttConnectionParameters.clientId = "HC3-" .. plugin.mainDeviceId .. "-" .. tostring(os.time())
     else
         mqttConnectionParameters.clientId = mqttClientId
     end
@@ -160,7 +160,7 @@ function QuickApp:onConnected(event)
 end
 
 function QuickApp:identifyAndPublishDeviceToMqtt(fibaroDevice)
-    local bridgedDevice = identifyDevice(fibaroDevice) 
+    local bridgedDevice = identifyDevice(fibaroDevice)
     self:publishDeviceToMqtt(bridgedDevice)
 end
 
@@ -168,6 +168,7 @@ function QuickApp:discoverDevicesAndPublishToMqtt()
     local startTime = os.time()
 
     local fibaroDevices = self:discoverDevices()
+    
     self:identifyDevices(fibaroDevices)
 
     for _, device in pairs(self.devices) do
@@ -204,7 +205,7 @@ function QuickApp:discoverDevices()
             visible = true
         })
     else
-        -- useful to reduce amount information for debug with smaller number of devices
+        --smaller number of devices for development and testing purposes
         self:debug("Bridge mode: DEVELOPMENT")
 
         fibaroDevices = {
@@ -242,7 +243,7 @@ function QuickApp:identifyDevices(fibaroDevices)
             self:debug("Device " .. self:getDeviceDescription(device) .. " identified as " .. device.bridgeType)
             self.devices[device.id] = device
         else
-            self:debug("Couldn't recognize device #" .. fibaroDevice.id .. " - " .. fibaroDevice.name .. " - " .. fibaroDevice.bridgeType .. " - " .. fibaroDevice.bridgeSubtype)
+            self:debug("Couldn't recognize device #" .. fibaroDevice.id .. " - " .. fibaroDevice.name .. " - " .. fibaroDevice.baseType .. " - " .. fibaroDevice.type)
         end
     end
 end
@@ -308,12 +309,15 @@ function QuickApp:readHc3EventAndScheduleFetcher()
         },
         success=function(res)
             local states = res.status == 200 and json.decode(res.data)
+            local gotError = false
 
             if (res.status ~= 200) then
                 self:error("Unexpected response status " .. res.status)
+                gotError = true
             end
             if (not res.data) then
                 self:error("Empty response")
+                gotError = true
             end
             if (not self.hc3ConnectionEnabled) then
                 self:debug("Got flagged to stop reading HC3 events")
@@ -331,7 +335,14 @@ function QuickApp:readHc3EventAndScheduleFetcher()
             end
 
             if (self.hc3ConnectionEnabled) then
-                fibaro.setTimeout(25, function()
+                local delay
+                if gotError then
+                    delay = 1000
+                else
+                    delay = 25
+                end
+
+                fibaro.setTimeout(delay, function()
                     self:readHc3EventAndScheduleFetcher()
                 end)
             end
