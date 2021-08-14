@@ -1,12 +1,11 @@
-# hc3-to-mqtt
+# "Fibaro Home Center 3" to "Home Assistant" integration
 QuickApp for Fibaro HC3 and MQTT integration:
    * Device types - sensors (e.g. motion, door/window), multilevel sensors (e.g. temperature, brightness), switches, light bulbs, dimmers, shutter
    * Bi-directional integration allowing HC3 to publish Z-Wave device state changes to MQTT, and accepting commands from other MQTT clients
    * Integration with Home Assistant with autodiscovery support
    * Integration with Node-RED trough MQTT in/out nodes
 
-
-How to use:
+## How to use:
 1. Download hc3_mqtt_bridge.fqa
 2. Import Quick Application to your Fibaro HC3
 3. Setup variables for the Quick Application
@@ -17,7 +16,6 @@ How to use:
      * **home-assistant** - support for Home Assistant with autodiscovery (default)
      * **homie** - support for Homie compatible software (experimental)
      * **debug** - output verbose Fibaro HC3 events to MQTT, containing as much information about Fibaro HC3 events as possible for debug purposes
-
 4. If you only want to integrate with Home Assistant then you are done :) If need more flexibility and integrate with NodeRed
    * suggest to install MQTT Explorer for being able to see the topic/message structure
    * send command messages from Node Red to Fibaro HC3 with topic "homeassistant/<device_type>/<device_id_as_shown_at_Fibaro_HC3>/set/<property>", where <property> could be
@@ -26,8 +24,12 @@ How to use:
       * thermostatMode
       * and so on
 
-
-Advanced "variables" for the bridge:
+## Advanced "variables" for the bridge:
    * **mqttClientId** to setup custom client id, or using **"HC3-" .. plugin.mainDeviceId** by default
    * **mqttKeepAlive** to setup custom MQTT Keep Alive Period
    * **hc3Auth** and **mqttAuth** - contains your user credentials to access you Fibaro HC3 API and MQTT, same way as [HTTP Basic Authentication](https://en.wikipedia.org/wiki/Basic_access_authentication) encodes user credentials => you take your username, then append it with ":" character, then append with password, and then encode the resulting String with [Base64](https://www.base64encode.org/). For example if your username is "admin" and password is "password", then you hc3Auth variable should be "YWRtaW46cGFzc3dvcmQ=" ("admin:password" in decoded form)
+\
+## PayPal donations for adding new devices support
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate?hosted_button_id=7FXBMQKCWESLN).
+\
+I'm using my mother's PayPal because (a) I'd like to support my parents ;-) (b) I'm located in Ukraine and technically not able to get direct donations, and my mother is located Germany where everything is working like a charm
