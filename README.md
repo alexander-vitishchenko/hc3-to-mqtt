@@ -1,6 +1,6 @@
 # "Fibaro Home Center 3" to "Home Assistant" integration
 
-## How to use:
+## How to use
 1. Download hc3_mqtt_bridge.fqa
 2. Import Quick Application to your Fibaro HC3
 3. Setup variables for the Quick Application
@@ -8,7 +8,7 @@
    * **hc3Username** and **hc3Password** - user credentials to access event stream from your Fibaro Home Center 3 (mandatory)
    * **mqttUsername** and **mqttPassword** - user credentials to access your MQTT broker (optional)
 
-Device support:
+## Device support
    * sensors - Fibaro Motion Sensor, Fibaro Universal Sensor, Fibaro Flood Sensor, Fibaro Smoke/Fire Sensor, most of the generic temperature/humidity/brightness/etc sensors
    * switches - Fibaro Relay Switch, Fibaro Dimmer
    * thermostat - Connect Home CH-2xx (not recommended for purchase) 
