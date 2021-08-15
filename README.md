@@ -20,4 +20,5 @@ Device support:
 \
 I can add new device support with buying new hardware for testing and allocating more time on programming during weekends.
 \
+\
 Note: I'm using my mother's PayPal because (a) I'd like to support my parents ;-) (b) I'm located in Ukraine and technically not able to get direct donations, and my mother is located Germany where PayPal payments work like a charm
