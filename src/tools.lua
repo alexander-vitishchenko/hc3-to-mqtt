@@ -302,3 +302,28 @@ end
 function inheritFrom(orig)
     return clone(orig)
 end
+
+function isNumber(value)
+    if type(value) == "number" then return true end
+
+    if value == tostring(tonumber(value)) then
+        return true
+    else
+        return false
+    end
+end
+
+function round(number, dec)
+    local k = 10^dec
+
+    local result = math.floor(number * k + 0.5) / k
+
+    local resultWithoutTrailingZero = math.floor(result)
+    if (resultWithoutTrailingZero ~= result) then
+        return result
+    else
+        return resultWithoutTrailingZero
+    end
+
+    return result
+end

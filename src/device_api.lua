@@ -206,7 +206,7 @@ function MultilevelSensor:init(device)
     -- ToDo: refactor with mappings
     if (device.type == "com.fibaro.temperatureSensor") then
         device.bridgeSubtype = "temperature"
-        device.bridgeUnitOfMeasurement = "°" .. device.properties.unit
+        device.bridgeUnitOfMeasurement = "Â°" .. device.properties.unit
     elseif (device.type == "com.fibaro.lightSensor") then
         device.bridgeSubtype = "illuminance"
     elseif (device.type == "com.fibaro.humiditySensor") then 

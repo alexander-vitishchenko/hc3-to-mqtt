@@ -225,10 +225,6 @@ function QuickApp:discoverDevices()
             getFibaroDeviceById(122), -- temperature sensor
             getFibaroDeviceById(335), -- on/off thermostat from Qubino
             getFibaroDeviceById(336), -- temperature sensor 
-            getFibaroDeviceByInfo(json.decode("{\"id\":37,\"name\":\"36.0\",\"roomID\":219,\"view\":[{\"assetsPath\":\"/dynamic-plugins/com.fibaro.multilevelSensor/assets\",\"jsPath\":\"/dynamic-plugins/com.fibaro.multilevelSensor\",\"name\":\"com.fibaro.multilevelSensor\",\"translatesPath\":\"/assets/i18n\",\"type\":\"ts\"}],\"type\":\"com.fibaro.multilevelSensor\",\"baseType\":\"com.fibaro.sensor\",\"enabled\":true,\"visible\":true,\"isPlugin\":false,\"parentId\":36,\"viewXml\":false,\"configXml\":false,\"interfaces\":[\"battery\",\"fibaroFirmwareUpdate\",\"tamper\",\"zwave\",\"zwaveAlarm\",\"zwaveWakeup\"],\"properties\":{\"parameters\":[],\"pollingTimeSec\":0,\"wakeUpTime\":86400,\"zwaveCompany\":\"Philio Technology Corp\",\"zwaveInfo\":\"3,4,5\",\"zwaveVersion\":\"1.14\",\"alarmLevel\":0,\"alarmType\":0,\"batteryLevel\":100,\"batteryLowNotification\":true,\"categories\":[\"other\"],\"configured\":true,\"dead\":false,\"deadReason\":\"\",\"defInterval\":0,\"deviceControlType\":0,\"deviceIcon\":47,\"endPointId\":0,\"firmwareUpdate\":{\"info\":\"\",\"progress\":0,\"status\":\"UpToDate\",\"updateVersion\":\"1.14\"},\"log\":\"\",\"logTemp\":\"\",\"manufacturer\":\"\",\"markAsDead\":true,\"maxInterval\":0,\"minInterval\":0,\"model\":\"\",\"nodeId\":6,\"parametersTemplate\":\"0\",\"pendingActions\":false,\"productInfo\":\"1,60,0,2,0,32,1,14\",\"saveLogs\":true,\"serialNumber\":\"h\'100d46e5\",\"stepInterval\":0,\"tamper\":false,\"unit\":\"\",\"updateVersion\":\"\",\"useTemplate\":true,\"userDescription\":\"\",\"value\":0.0},\"actions\":{\"abortUpdate\":1,\"reconfigure\":0,\"retryUpdate\":1,\"setInterval\":1,\"startUpdate\":1,\"updateFirmware\":1},\"created\":1625515690,\"modified\":1625515690,\"sortOrder\":11}")),
-            getFibaroDeviceByInfo(json.decode("{\"id\":38,\"name\":\"36.0.1\",\"roomID\":219,\"view\":[{\"assetsPath\":\"/dynamic-plugins/com.fibaro.securitySensor/assets\",\"jsPath\":\"/dynamic-plugins/com.fibaro.securitySensor\",\"name\":\"com.fibaro.securitySensor\",\"translatesPath\":\"/dynamic-plugins/com.fibaro.securitySensor/i18n\",\"type\":\"ts\"}],\"type\":\"com.fibaro.motionSensor\",\"baseType\":\"com.fibaro.securitySensor\",\"enabled\":true,\"visible\":true,\"isPlugin\":false,\"parentId\":36,\"viewXml\":false,\"configXml\":false,\"interfaces\":[\"battery\",\"fibaroBreach\",\"zwave\",\"zwaveWakeup\"],\"properties\":{\"parameters\":[],\"pollingTimeSec\":0,\"wakeUpTime\":86400,\"zwaveCompany\":\"Philio Technology Corp\",\"zwaveInfo\":\"3,4,5\",\"zwaveVersion\":\"1.14\",\"batteryLevel\":100,\"batteryLowNotification\":true,\"categories\":[\"security\"],\"configured\":true,\"dead\":false,\"deadReason\":\"\",\"defInterval\":0,\"deviceControlType\":0,\"deviceIcon\":21,\"endPointId\":0,\"lastBreached\":0,\"log\":\"\",\"logTemp\":\"\",\"manufacturer\":\"\",\"markAsDead\":true,\"maxInterval\":0,\"minInterval\":0,\"model\":\"\",\"nodeId\":6,\"parametersTemplate\":\"0\",\"pendingActions\":false,\"productInfo\":\"1,60,0,2,0,32,1,14\",\"saveLogs\":true,\"serialNumber\":\"h\'100d46e5\",\"stepInterval\":0,\"useTemplate\":true,\"userDescription\":\"\",\"value\":false},\"actions\":{\"reconfigure\":0,\"setInterval\":1},\"created\":1625515690,\"modified\":1625515690,\"sortOrder\":12}")),
-            getFibaroDeviceByInfo(json.decode("{\"id\":39,\"name\":\"36.0.2\",\"roomID\":219,\"view\":[{\"assetsPath\":\"/dynamic-plugins/com.fibaro.multilevelSensor/assets\",\"jsPath\":\"/dynamic-plugins/com.fibaro.multilevelSensor\",\"name\":\"com.fibaro.multilevelSensor\",\"translatesPath\":\"/assets/i18n\",\"type\":\"ts\"}],\"type\":\"com.fibaro.temperatureSensor\",\"baseType\":\"com.fibaro.multilevelSensor\",\"enabled\":true,\"visible\":true,\"isPlugin\":false,\"parentId\":36,\"viewXml\":false,\"configXml\":false,\"interfaces\":[\"battery\",\"zwave\",\"zwaveWakeup\"],\"properties\":{\"parameters\":[],\"pollingTimeSec\":0,\"wakeUpTime\":86400,\"zwaveCompany\":\"Philio Technology Corp\",\"zwaveInfo\":\"3,4,5\",\"zwaveVersion\":\"1.14\",\"batteryLevel\":100,\"batteryLowNotification\":true,\"categories\":[\"climate\"],\"configured\":true,\"dead\":false,\"deadReason\":\"\",\"defInterval\":0,\"deviceControlType\":0,\"deviceIcon\":30,\"endPointId\":0,\"log\":\"\",\"logTemp\":\"\",\"manufacturer\":\"\",\"markAsDead\":true,\"maxInterval\":0,\"minInterval\":0,\"model\":\"\",\"nodeId\":6,\"offset\":0.0,\"parametersTemplate\":\"0\",\"pendingActions\":false,\"productInfo\":\"1,60,0,2,0,32,1,14\",\"saveLogs\":true,\"serialNumber\":\"h\'100d46e5\",\"showFireAlarm\":true,\"showFreezeAlarm\":false,\"stepInterval\":0,\"unit\":\"C\",\"useTemplate\":true,\"userDescription\":\"\",\"value\":20.9},\"actions\":{\"reconfigure\":0,\"setInterval\":1},\"created\":1625515690,\"modified\":1625515690,\"sortOrder\":13}")),
-            getFibaroDeviceByInfo(json.decode("{\"id\":40,\"name\":\"36.0.3\",\"roomID\":219,\"view\":[{\"assetsPath\":\"/dynamic-plugins/com.fibaro.multilevelSensor/assets\",\"jsPath\":\"/dynamic-plugins/com.fibaro.multilevelSensor\",\"name\":\"com.fibaro.multilevelSensor\",\"translatesPath\":\"/assets/i18n\",\"type\":\"ts\"}],\"type\":\"com.fibaro.humiditySensor\",\"baseType\":\"com.fibaro.multilevelSensor\",\"enabled\":true,\"visible\":true,\"isPlugin\":false,\"parentId\":36,\"viewXml\":false,\"configXml\":false,\"interfaces\":[\"battery\",\"zwave\",\"zwaveWakeup\"],\"properties\":{\"parameters\":[],\"pollingTimeSec\":0,\"wakeUpTime\":86400,\"zwaveCompany\":\"Philio Technology Corp\",\"zwaveInfo\":\"3,4,5\",\"zwaveVersion\":\"1.14\",\"batteryLevel\":100,\"batteryLowNotification\":true,\"categories\":[\"other\"],\"configured\":true,\"dead\":false,\"deadReason\":\"\",\"defInterval\":0,\"deviceControlType\":0,\"deviceIcon\":31,\"endPointId\":0,\"log\":\"\",\"logTemp\":\"\",\"manufacturer\":\"\",\"markAsDead\":true,\"maxInterval\":0,\"minInterval\":0,\"model\":\"\",\"nodeId\":6,\"parametersTemplate\":\"0\",\"pendingActions\":false,\"productInfo\":\"1,60,0,2,0,32,1,14\",\"saveLogs\":true,\"serialNumber\":\"h\'100d46e5\",\"stepInterval\":0,\"unit\":\"%\",\"useTemplate\":true,\"userDescription\":\"\",\"value\":82.03},\"actions\":{\"reconfigure\":0,\"setInterval\":1},\"created\":1625515690,\"modified\":1625515690,\"sortOrder\":14}")),
             getFibaroDeviceByInfo(json.decode("{\"id\":35,\"name\":\"StekkerHC3\",\"roomID\":221,\"view\":[{\"assetsPath\":\"/dynamic-plugins/com.fibaro.binarySwitch/assets\",\"jsPath\":\"/dynamic-plugins/com.fibaro.binarySwitch\",\"name\":\"com.fibaro.binarySwitch\",\"translatesPath\":\"/dynamic-plugins/com.fibaro.binarySwitch/i18n\",\"type\":\"ts\"},{\"assetsPath\":\"/dynamic-plugins/energy/assets\",\"jsPath\":\"/dynamic-plugins/energy\",\"name\":\"energy\",\"translatesPath\":\"/dynamic-plugins/energy/i18n\",\"type\":\"ts\"},{\"assetsPath\":\"/dynamic-plugins/power/assets\",\"jsPath\":\"/dynamic-plugins/power\",\"name\":\"power\",\"translatesPath\":\"/dynamic-plugins/power/i18n\",\"type\":\"ts\"}],\"type\":\"com.fibaro.FGWP102\",\"baseType\":\"com.fibaro.FGWP\",\"enabled\":true,\"visible\":true,\"isPlugin\":false,\"parentId\":34,\"viewXml\":false,\"configXml\":false,\"interfaces\":[\"energy\",\"fibaroFirmwareUpdate\",\"light\",\"power\",\"zwave\",\"zwaveAlarm\",\"zwaveMultiChannelAssociation\"],\"properties\":{\"parameters\":[{\"id\":1,\"lastReportedValue\":0,\"lastSetValue\":0,\"size\":1,\"value\":0},{\"id\":2,\"lastReportedValue\":1,\"lastSetValue\":1,\"size\":1,\"value\":1},{\"id\":3,\"lastReportedValue\":0,\"lastSetValue\":0,\"size\":2,\"value\":0},{\"id\":10,\"lastReportedValue\":80,\"lastSetValue\":80,\"size\":1,\"value\":80},{\"id\":11,\"lastReportedValue\":15,\"lastSetValue\":15,\"size\":1,\"value\":15},{\"id\":12,\"lastReportedValue\":30,\"lastSetValue\":30,\"size\":2,\"value\":30},{\"id\":13,\"lastReportedValue\":10,\"lastSetValue\":10,\"size\":2,\"value\":10},{\"id\":14,\"lastReportedValue\":3600,\"lastSetValue\":3600,\"size\":2,\"value\":3600},{\"id\":15,\"lastReportedValue\":0,\"lastSetValue\":0,\"size\":1,\"value\":0},{\"id\":20,\"lastReportedValue\":0,\"lastSetValue\":0,\"size\":1,\"value\":0},{\"id\":21,\"lastReportedValue\":300,\"lastSetValue\":300,\"size\":2,\"value\":300},{\"id\":22,\"lastReportedValue\":500,\"lastSetValue\":500,\"size\":2,\"value\":500},{\"id\":23,\"lastReportedValue\":6,\"lastSetValue\":6,\"size\":1,\"value\":6},{\"id\":24,\"lastReportedValue\":255,\"lastSetValue\":255,\"size\":2,\"value\":255},{\"id\":30,\"lastReportedValue\":63,\"lastSetValue\":63,\"size\":1,\"value\":63},{\"id\":31,\"lastReportedValue\":0,\"lastSetValue\":0,\"size\":1,\"value\":0},{\"id\":32,\"lastReportedValue\":600,\"lastSetValue\":600,\"size\":2,\"value\":600},{\"id\":40,\"lastReportedValue\":25000,\"lastSetValue\":25000,\"size\":2,\"value\":25000},{\"id\":41,\"lastReportedValue\":1,\"lastSetValue\":1,\"size\":1,\"value\":1},{\"id\":42,\"lastReportedValue\":0,\"lastSetValue\":0,\"size\":1,\"value\":0},{\"id\":43,\"lastReportedValue\":2,\"lastSetValue\":2,\"size\":1,\"value\":2},{\"id\":50,\"lastReportedValue\":3,\"lastSetValue\":3,\"size\":1,\"value\":3}],\"pollingTimeSec\":0,\"zwaveCompany\":\"Fibargroup\",\"zwaveInfo\":\"3,4,24\",\"zwaveVersion\":\"3.2\",\"alarmLevel\":0,\"alarmType\":0,\"categories\":[\"lights\"],\"color\":\"white\",\"configured\":true,\"dead\":false,\"deadReason\":\"\",\"deviceControlType\":2,\"deviceIcon\":125,\"endPointId\":0,\"energy\":0.0,\"firmwareUpdate\":{\"info\":\"\",\"progress\":0,\"status\":\"UpToDate\",\"updateVersion\":\"3.2\"},\"icon\":{\"path\":\"assets/icon/fibaro/onoff/onoff100.png\",\"source\":\"HC\"},\"isLight\":true,\"log\":\"\",\"logTemp\":\"\",\"manufacturer\":\"\",\"markAsDead\":true,\"model\":\"\",\"nodeId\":5,\"parametersTemplate\":\"741\",\"power\":0.0,\"productInfo\":\"1,15,6,2,16,3,3,2\",\"saveLogs\":true,\"serialNumber\":\"h\'0000000000022a2a\",\"showEnergy\":true,\"state\":true,\"updateVersion\":\"\",\"useTemplate\":true,\"userDescription\":\"\",\"value\":true},\"actions\":{\"abortUpdate\":1,\"reconfigure\":0,\"reset\":0,\"retryUpdate\":1,\"startUpdate\":1,\"toggle\":0,\"turnOff\":0,\"turnOn\":0,\"updateFirmware\":1},\"created\":1625515690,\"modified\":1625515690,\"sortOrder\":9}"))
         }
     end
@@ -403,6 +399,12 @@ function QuickApp:dispatchFibaroEventToMqtt(event)
                 event.data.property = "state"
             end
 
+            local value = event.data.newValue
+            if (isNumber(value)) then
+                value = round(value, 2)
+            end
+            event.data.newValue = (type(value) == "number" and value or tostring(value))
+
             for i, j in ipairs(self.mqttConventions) do
                 j:onPropertyUpdated(device, event)
             end
@@ -417,7 +419,7 @@ function QuickApp:dispatchFibaroEventToMqtt(event)
                 --self:rememberLastHc3CommandTime(deviceId, event.sourceType)
             end
         else
-            self:warning("TBD: Need to introduce new event type for " .. tostring(event.type))
+            self:warning("TBD: Introduce new event type for " .. tostring(event.type))
         end
 
     end
@@ -425,31 +427,6 @@ end
 
 function QuickApp:rememberLastMqttCommandTime(deviceId)
     self.lastMqttCommandTime[deviceId] = os.time()
-end
-
-function QuickApp:dispatchPropertyUpdateEvent(device, event, payload, propertyName)
-    -- PUBLISH DEVICE STATUS FOR HA AND NODE-RED
-    local topic = createPropertyTopicName(device, propertyName)
-
-    local value = (type(event.data.newValue) == "number" and event.data.newValue or tostring(event.data.newValue))
-    if not value then
-        value = (type(event.value) == "number" and event.value or tostring(event.value))    
-    end
-
-    payload.value = string.lower(value)
-
-    local haPayload
-    if (propertyName == "dead") then
-        haPayload = tostring(payload.value)
-    else
-        haPayload = json.encode(payload)
-    end
-
-    --self:debug("SEND MESSAGE: " .. topic .. " = " .. json.encode(haPayload))
-    self:publish(
-        topic,
-        haPayload
-    )
 end
 
 function QuickApp:dispatchDeviceCreatedEvent(device)
@@ -478,7 +455,7 @@ function QuickApp:dispatchDeviceRemovedEvent(device)
 end
 
 function QuickApp:dispatchCentralSceneEvent(device, event, payload)
-    -- PUBLISH DEVICE STATUS FOR HA AND NODE-RED
+    -- PUBLISH DEVICE STATUS TO HOME ASSISTANT
     local topic = createGenericEventTopicName(device, "CentralSceneEvent", "key" .. event.data.keyAttribute)
 
     createGenericEventTopicName(device, event.type)
