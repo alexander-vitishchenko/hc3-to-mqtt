@@ -14,6 +14,7 @@ Device support:
    * thermostat - Connect Home CH-2xx (not recommended for purchase) 
    * shutters - Fibaro Shutter
 
+
 ## Your donations are welcome!
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate?hosted_button_id=7FXBMQKCWESLN).
 \
