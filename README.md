@@ -12,10 +12,6 @@ QuickApp for Fibaro HC3 and MQTT integration:
    * **mqttUrl** - URL for connecting to MQTT broker, e.g. "mqtt://192.168.1.10:1883"
    * **hc3Username** and **hc3Password** - user credentials to access event stream from your Fibaro Home Center 3 (mandatory)
    * **mqttUsername** and **mqttPassword** - user credentials to access your MQTT broker (optional)
-   * **mqttConvention** - comma separated MQTT conventions (optional)
-     * **home-assistant** - support for Home Assistant with autodiscovery (default)
-     * **homie** - support for Homie compatible software (experimental)
-     * **debug** - output verbose Fibaro HC3 events to MQTT, containing as much information about Fibaro HC3 events as possible for debug purposes
 
 ## Your donations are welcome!
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate?hosted_button_id=7FXBMQKCWESLN).
