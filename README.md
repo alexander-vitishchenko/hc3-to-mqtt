@@ -1,7 +1,7 @@
 # "Fibaro Home Center 3" to "Home Assistant" integration
 
 ## How to use
-1. Download hc3_mqtt_bridge.fqa
+1. Download hc3_to_mqtt_bridge.fqa
 2. Import Quick Application to your Fibaro HC3
 3. Setup variables for the Quick Application
    * **mqttUrl** - URL for connecting to MQTT broker, e.g. "mqtt://192.168.1.10:1883"
