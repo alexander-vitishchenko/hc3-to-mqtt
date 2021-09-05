@@ -51,7 +51,13 @@ function MqttConventionHomeAssistant:getGenericEventTopic(device, eventType, pro
     end
 end
 function MqttConventionHomeAssistant:getterTopic(device, propertyName)
-    return self:getGenericEventTopic(device, "DevicePropertyUpdatedEvent", propertyName)
+    if (device.linkedDevice and propertyName == "value") then
+        local result = self:getGenericEventTopic(device.linkedDevice, "DevicePropertyUpdatedEvent", device.linkedProperty)
+
+        return result
+    else
+        return self:getGenericEventTopic(device, "DevicePropertyUpdatedEvent", propertyName)
+    end
 end
 function MqttConventionHomeAssistant:getGenericCommandTopic(device, command, propertyName) 
     if (propertyName) then
@@ -208,6 +214,13 @@ function MqttConventionHomeAssistant:onDeviceCreated(device)
         if (PrototypeDevice.bridgeUnitOfMeasurement ~= device.bridgeUnitOfMeasurement) then
             msg.unit_of_measurement = device.bridgeUnitOfMeasurement
         end
+
+        -- Energy meter requires extra properties
+        if (device.bridgeSubtype == "energy") then
+            msg.state_class = "measurement"
+            msg.last_reset_topic = self:getterTopic(device, "lastReset")
+            msg.last_reset_value_template = "{{ value_json.value }}"
+        end
     end
 
     ------------------------------------------
@@ -239,7 +252,7 @@ function MqttConventionHomeAssistant:onDeviceCreated(device)
     end
 
     self.mqtt:publish(self:getDeviceTopic(device) .. "config", json.encode(msg), {retain = true})
-
+    
     self.mqtt:publish(self:getDeviceTopic(device) .. "config_json_attributes", json.encode(device.fibaroDevice), {retain = true})
 end
 
