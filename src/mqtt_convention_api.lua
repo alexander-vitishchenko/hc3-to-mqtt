@@ -51,7 +51,14 @@ function MqttConventionHomeAssistant:getGenericEventTopic(device, eventType, pro
     end
 end
 function MqttConventionHomeAssistant:getterTopic(device, propertyName)
-    return self:getGenericEventTopic(device, "DevicePropertyUpdatedEvent", propertyName)end
+    if (device.linkedDevice and propertyName == "value") then
+        local result = self:getGenericEventTopic(device.linkedDevice, "DevicePropertyUpdatedEvent", device.linkedProperty)
+
+        return result
+    else
+        return self:getGenericEventTopic(device, "DevicePropertyUpdatedEvent", propertyName)
+    end
+end
 function MqttConventionHomeAssistant:getGenericCommandTopic(device, command, propertyName) 
     if (propertyName) then
         return self:getDeviceTopic(device) .. command ..  "/" .. propertyName
@@ -133,7 +140,6 @@ function MqttConventionHomeAssistant:onDeviceCreated(device)
             msg.payload_on = "true"
             msg.payload_off = "false"
         end
-        msg.value_template = "{{ value_json.value }}"
     end
     
     ------------------------------------------
@@ -142,6 +148,13 @@ function MqttConventionHomeAssistant:onDeviceCreated(device)
     -- Does device have binary state to share?
     if (device.bridgeRead and device.bridgeBinary) then
         msg.state_topic = self:getterTopic(device, "state")
+        
+        if (device.bridgeType == "light") then
+            msg.state_value_template = "{{ value_json.value }}"
+        else
+            -- wish Home Assistant spec was consistent for all device types and "state_value_template" was used for all the devices with "state" property
+            msg.value_template = "{{ value_json.value }}"
+        end
     end
     -- Does device have multilevel state to share?
     if (device.bridgeRead and device.bridgeMultilevel) then
@@ -152,6 +165,9 @@ function MqttConventionHomeAssistant:onDeviceCreated(device)
             msg.position_topic = self:getterTopic(device, "value")
         elseif (device.bridgeType == "sensor") then
             msg.state_topic = self:getterTopic(device, "value")
+            msg.value_template = "{{ value_json.value }}"
+        else
+            msg.value_template = "{{ value_json.value }}"
         end
     end
 
@@ -198,6 +214,13 @@ function MqttConventionHomeAssistant:onDeviceCreated(device)
         if (PrototypeDevice.bridgeUnitOfMeasurement ~= device.bridgeUnitOfMeasurement) then
             msg.unit_of_measurement = device.bridgeUnitOfMeasurement
         end
+
+        -- Energy meter requires extra properties
+        if (device.bridgeSubtype == "energy") then
+            msg.state_class = "measurement"
+            msg.last_reset_topic = self:getterTopic(device, "lastReset")
+            msg.last_reset_value_template = "{{ value_json.value }}"
+        end
     end
 
     ------------------------------------------
@@ -229,7 +252,7 @@ function MqttConventionHomeAssistant:onDeviceCreated(device)
     end
 
     self.mqtt:publish(self:getDeviceTopic(device) .. "config", json.encode(msg), {retain = true})
-
+    
     self.mqtt:publish(self:getDeviceTopic(device) .. "config_json_attributes", json.encode(device.fibaroDevice), {retain = true})
 end
 
@@ -243,7 +266,7 @@ end
 function MqttConventionHomeAssistant:onPropertyUpdated(device, event)
     local propertyName = event.data.property
 
-    local value = (type(event.data.newValue) == "number" and event.data.newValue or tostring(event.data.newValue))
+    local value = event.data.newValue
 
     if device.bridgeType == "cover" then 
         if propertyName == "value" then
@@ -441,7 +464,7 @@ end
 function MqttConventionHomie:onPropertyUpdated(device, event)
     local propertyName = event.data.property
 
-    local value = (type(event.data.newValue) == "number" and event.data.newValue or tostring(event.data.newValue))
+    local value = event.data.newValue
 
     value = string.lower(value)
 

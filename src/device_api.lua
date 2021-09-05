@@ -21,7 +21,9 @@ function PrototypeDevice:new(fibaroDevice)
 
     device.fibaroDevice = fibaroDevice
     
-    device.roomName = tostring(fibaro.getRoomNameByDeviceID(device.id))
+    if (not device.roomName) then
+        device.roomName = tostring(fibaro.getRoomNameByDeviceID(device.id))
+    end
 
     self:init(device)
 
@@ -202,7 +204,7 @@ function MultilevelSensor:init(device)
     -- initialize unit of measurement
     device.bridgeUnitOfMeasurement = device.properties.unit
 
-    -- initialize subtype
+    -- initialize subtype 
     -- ToDo: refactor with mappings
     if (device.type == "com.fibaro.temperatureSensor") then
         device.bridgeSubtype = "temperature"
@@ -211,6 +213,10 @@ function MultilevelSensor:init(device)
         device.bridgeSubtype = "illuminance"
     elseif (device.type == "com.fibaro.humiditySensor") then 
         device.bridgeSubtype = "humidity"
+    elseif (device.type == "com.fibaro.energySensor") then 
+        device.bridgeSubtype = "energy"
+    elseif (device.type == "com.fibaro.powerSensor") then 
+        device.bridgeSubtype = "power"
     elseif (device.properties.unit == "V") then
         device.bridgeSubtype = "voltage"
     elseif (device.properties.unit == "A") then
