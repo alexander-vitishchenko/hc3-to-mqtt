@@ -12,10 +12,11 @@
      <img src="https://user-images.githubusercontent.com/1070777/129613646-5c762c8e-e39e-4173-8741-723abe4337e2.png" width="70%" height="70%">
 
 ## Device support
-   * sensors - Fibaro Motion Sensor, Fibaro Universal Sensor, Fibaro Flood Sensor, Fibaro Smoke/Fire Sensor, most of the generic temperature/humidity/brightness/etc sensors
-   * switches - Fibaro Relay Switch, Fibaro Dimmer
-   * thermostat - Connect Home CH-2xx (not recommended for purchase) 
-   * shutters - Fibaro Shutter
+   * Sensors - Fibaro Motion Sensor, Fibaro Universal Sensor, Fibaro Flood Sensor, Fibaro Smoke/Fire Sensor, most of the generic temperature/humidity/brightness/etc sensors
+   * Switches - Fibaro Relay Switch, Fibaro Dimmer
+   * Thermostats - with a limited model support, but I can get it implemented if you send me device configuration, or the sample device ideally 
+   * Shutters - Fibaro Shutter
+   * Energy and power meters
 
 ## Your donations are welcome!
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate?hosted_button_id=7FXBMQKCWESLN).
