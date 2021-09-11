@@ -217,9 +217,10 @@ function MqttConventionHomeAssistant:onDeviceCreated(device)
 
         -- Energy meter requires extra properties
         if (device.bridgeSubtype == "energy") then
-            msg.state_class = "measurement"
-            msg.last_reset_topic = self:getterTopic(device, "lastReset")
-            msg.last_reset_value_template = "{{ value_json.value }}"
+            msg.state_class = "total_increasing"
+            --msg.state_class = "measurement"
+            --msg.last_reset_topic = self:getterTopic(device, "lastReset")
+            --msg.last_reset_value_template = "{{ value_json.value }}"
         end
     end
 
