@@ -15,6 +15,7 @@ function QuickApp:turnOn()
 end
 
 function QuickApp:turnOff()
+    self:debug("HC3-to-MQTT bridget shutdown sequence initiated")
     self:disconnectFromMqttAndHc3()
     self:updateProperty("value", false)
     self:debug("HC3-to-MQTT bridge shutdown sequence complete")
@@ -118,7 +119,7 @@ end
 function QuickApp:onError(event)
     self:error("MQTT ERROR: " .. json.encode(event))
     if event.code == 2 then
-        self:warning("MQTT username and/or password could be indicated wrongly")
+        self:warning("MQTT username and/or password is possibly indicated wrongly")
     end
     self:turnOff()
     self:scheduleReconnectToMqtt();
@@ -231,7 +232,7 @@ function QuickApp:identifyDevices(fibaroDevices)
     for _, fibaroDevice in ipairs(fibaroDevices) do
         local device = identifyDevice(fibaroDevice)
         if (device) then
-            self:debug("Device " .. self:getDeviceDescription(device) .. " identified as " .. device.bridgeType)
+            self:debug("Device " .. self:getDeviceDescription(device) .. " identified as " .. device.bridgeType .. "-" .. device.bridgeSubtype)
             self.devices[device.id] = device
 
             -- ***** ToDo: move to identifyDevice function, aiming support deviceRemoved and deviceModified and deviceCreated events
@@ -304,7 +305,7 @@ function QuickApp:publishDeviceToMqtt(device)
     self:simulatePropertyUpdate(device, "thermostatMode", device.properties.thermostatMode)
     self:simulatePropertyUpdate(device, "energy", device.properties.energy)
     self:simulatePropertyUpdate(device, "power", device.properties.power)
-    --self:simulatePropertyUpdate(device, "lastReset", device.properties.lastReset)
+    self:simulatePropertyUpdate(device, "color", device.properties.color)
 end
 
 function QuickApp:onPublished(event)
@@ -316,15 +317,12 @@ local lastRefresh = 0
 local http = net.HTTPClient()
 
 function QuickApp:scheduleHc3EventsFetcher()
-    -- hc3Auth variable is deprecated as being overcomplex for QuickApp users
     local hc3Auth = nil
-    --local hc3Auth = self:getVariable("hc3Auth")
     if (isEmptyString(hc3Auth)) then
         local hc3Username = self:getVariable("hc3Username")
         local hc3Password = self:getVariable("hc3Password")
         if (isEmptyString(hc3Username) or isEmptyString(hc3Password)) then
             self:warning("You have not provided Fibaro HC3 username and password, as result you have experimental 'passwordless' mode enabled")
-            --error("You need to provide username/password for your Fibaro HC3")
         end
         hc3Auth = base64Encode(hc3Username .. ":" .. hc3Password)
     end
@@ -340,7 +338,7 @@ end
 function QuickApp:readHc3EventAndScheduleFetcher()
 
     if self.hc3Auth then
-        -- This a reliable and high-performance method to get events from Fibaro HC3, by using non-blocking HTTP calls. Where 'passwordles' api.get() has a rick of blocking calls => peformance isues
+        -- This a reliable and high-performance method to get events from Fibaro HC3, by using non-blocking HTTP calls. Where 'passwordles' api.get() has a risk of blocking calls => peformance isues
 
         local requestUrl = "http://localhost:11111/api/refreshStates?last=" .. lastRefresh
         --self:debug("Try fetch events from " .. requestUrl .. " | " .. tostring(self.hc3ConnectionEnabled))
@@ -402,18 +400,18 @@ function QuickApp:processFibaroHc3Events(data)
     self.gotError = false
     if (data.status ~= 200 and data.status ~= "IDLE") then
         self:error("Unexpected response status " .. tostring(data.status))
-        self:turnOff()
+        -- Disable automated turnOff after unexpected response status
+        -- Make QuickApp less sensetive, so QuickApp doesn't get shutdown when it is possible to continue its operation
+        -- self:turnOff()
     end
 
-    local events = data.events --= data.status == 200 and json.decode(data.data)
-
+    local events = data.events
 
     if (data.last) then
         lastRefresh = data.last
     end
 
     if events and #events>0 then 
-        -- self:debug(json.encode(events))
         for i, v in ipairs(events) do
             self:dispatchFibaroEventToMqtt(v)
         end
