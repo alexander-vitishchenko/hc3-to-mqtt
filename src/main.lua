@@ -498,10 +498,10 @@ function QuickApp:rememberLastMqttCommandTime(deviceId)
 end
 
 function QuickApp:dispatchDeviceCreatedEvent(device)
-    local fibaroDevice = api.get("/devices/" .. device.id)
+    local fibaroDevice = getFibaroDeviceById(device.id)
 
     if (fibaroDevice.visible and fibaroDevice.enabled) then
-        self:debug("Device created " .. json.encode(fibaroDevice))
+        self:debug("New device configuration " .. json.encode(fibaroDevice))
         self:identifyAndPublishDeviceToMqtt(fibaroDevice)
     end
 end
