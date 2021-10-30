@@ -8,7 +8,8 @@
   <li> "<b>mqttUrl</b>" - URL for connecting to MQTT broker, e.g. "mqtt://192.168.1.10:1883"</li>
   <li> "<b>mqttUsername</b>" and "<b>mqttPassword</b>" - user credentials to access your MQTT broker (optional)</li>
 </ul>
-     <img src="https://user-images.githubusercontent.com/1070777/139558861-a4a68363-8f5c-4387-a5b8-c8a32275818b.png" width="70%" height="70%">
+     <img src="https://user-images.githubusercontent.com/1070777/139558918-f38ff0f7-3753-40e2-a611-6b99b94498d5.png" width="70%" height="70%">
+
 
 ## Device support
    * Sensors - Fibaro Motion Sensor, Fibaro Universal Sensor, Fibaro Flood Sensor, Fibaro Smoke/Fire Sensor, most of the generic temperature/humidity/brightness/etc sensors
