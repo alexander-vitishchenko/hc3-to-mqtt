@@ -1,10 +1,9 @@
 ----------------------------------- 
 -- PROTOTYPE OBJECT 
 -----------------------------------
-
 PrototypeDevice = {
     bridgeType = "'bridgeType' needs to be set",
-    bridgeSubtype = "'bridgeSubtype' needs to be set",
+    bridgeSubtype = "default",
     bridgeBinary = "'bridgeBinary' needs to be set",
     bridgeBinaryProperty = "value",
     bridgeMultilevel = "'bridgeMultilevel' needs to be set",
@@ -25,13 +24,13 @@ function PrototypeDevice:new(fibaroDevice)
         device.roomName = tostring(fibaro.getRoomNameByDeviceID(device.id))
     end
 
-    self:init(device)
+    self:init(device) 
 
     return device
 end
 
 function PrototypeDevice:init(device)
-    -- needs to be overriden by subclasses if need to initialize custom parameters
+    -- "init" function could be optionally overriden by subclasses implementation
 end 
 
 function PrototypeDevice:setProperty(propertyName, value)
@@ -56,14 +55,19 @@ function PrototypeDevice:setProperty(propertyName, value)
             else
                 print("Unexpected value: " .. json.encode(event))
             end
-
         else
             local firstPart = string.upper(string.sub(propertyName, 1, 1))
             local secondPart = string.sub(propertyName, 2, string.len(propertyName))
 
             local functionName = "set" .. firstPart .. secondPart
             print("CALL \"" .. functionName .. "\", with VALUE \"" .. value .. "\" for device #" .. self.id)
-            fibaro.call(self.id, functionName, value)
+
+            if (propertyName == "color") then
+                local newRgbw = splitStringToNumbers(value, ",")
+                fibaro.call(self.id, functionName, newRgbw[1], newRgbw[2], newRgbw[3], newRgbw[4])
+            else
+                fibaro.call(self.id, functionName, value)
+            end
         end
     else
         -- CUSTOM PROPERTY SETTER
@@ -79,9 +83,9 @@ end
 -----------------------------------
 -- BINARY SWITCH
 -----------------------------------
-
 Switch = inheritFrom(PrototypeDevice)
 Switch.bridgeType = "switch"
+Switch.bridgeSubtype = "binary"
 Switch.bridgeBinary = true
 Switch.bridgeMultilevel = false
 Switch.bridgeRead = true
@@ -98,9 +102,9 @@ end
 -----------------------------------
 -- BINARY LIGHT
 -----------------------------------
-
 Light = inheritFrom(PrototypeDevice)
 Light.bridgeType = "light"
+Light.bridgeSubtype = "binary"
 Light.bridgeBinary = true
 Light.bridgeMultilevel = false
 Light.bridgeRead = true
@@ -117,9 +121,9 @@ end
 -----------------------------------
 -- MULTILEVEL LIGHT (DIMMERS)
 -----------------------------------
-
 Dimmer = inheritFrom(PrototypeDevice)
 Dimmer.bridgeType = "light"
+Dimmer.bridgeSubtype = "dimmer"
 Dimmer.bridgeBinary = true
 Dimmer.bridgeMultilevel = true
 Dimmer.bridgeRead = true
@@ -134,9 +138,27 @@ function Dimmer.isSupported(fibaroDevice)
 end
 
 -----------------------------------
+-- MULTILEVEL LIGHT (RGBW)
+-----------------------------------
+Rgbw = inheritFrom(PrototypeDevice)
+Rgbw.bridgeType = "light"
+Rgbw.bridgeSubtype = "rgbw" 
+Rgbw.bridgeBinary = true
+Rgbw.bridgeMultilevel = true
+Rgbw.bridgeRead = true
+Rgbw.bridgeWrite = true
+
+function Rgbw.isSupported(fibaroDevice)
+    if (fibaroDevice.baseType == "com.fibaro.colorController") and table_contains_value(fibaroDevice.interfaces, "light")      then
+        return true
+    else 
+        return false
+    end
+end
+
+-----------------------------------
 -- BINARY SENSOR (DOOR, MOTION, WATER LEAK, FIRE, SMORE SENSORSMULTILEVEL FOR TEMPERATURE, ETC)
 -----------------------------------
-
 BinarySensor = inheritFrom(PrototypeDevice)
 BinarySensor.bridgeType = "binary_sensor"
 BinarySensor.bridgeBinary = true
@@ -181,7 +203,6 @@ end
 -----------------------------------
 -- MULTILEVEL SENSOR (TEMPERATURE, HUMIDITY, VOLTAGE, ETC) 
 -----------------------------------
-
 MultilevelSensor = inheritFrom(PrototypeDevice)
 MultilevelSensor.bridgeType = "sensor"
 MultilevelSensor.bridgeBinary = false
@@ -205,7 +226,7 @@ function MultilevelSensor:init(device)
     device.bridgeUnitOfMeasurement = device.properties.unit
 
     -- initialize subtype 
-    -- ToDo: refactor with mappings
+    -- ToDo *** refactor with mappings
     if (device.type == "com.fibaro.temperatureSensor") then
         device.bridgeSubtype = "temperature"
         device.bridgeUnitOfMeasurement = "°" .. device.properties.unit
@@ -217,6 +238,8 @@ function MultilevelSensor:init(device)
         device.bridgeSubtype = "energy"
     elseif (device.type == "com.fibaro.powerSensor") then 
         device.bridgeSubtype = "power"
+    elseif (device.bridgeSubtype == RemoteController.bridgeSubtype) then 
+        -- do nothing / the purpose for this logical condition is to make sure RemoteController doesn't fall into "Unknown multilevel sensor" category
     elseif (device.properties.unit == "V") then
         device.bridgeSubtype = "voltage"
     elseif (device.properties.unit == "A") then
@@ -226,14 +249,13 @@ function MultilevelSensor:init(device)
     elseif (device.properties.unit == "min(s)") then
         device.bridgeSubtype = "battery"
     else
-        print("[MultilevelSensor.init] Unknown multilevel sensor " .. tostring(device.id) .. " " .. tostring(device.name) .. " " .. device.properties.unit)
+        print("[MultilevelSensor.init] Unknown multilevel sensor " .. tostring(device.id) .. " " .. tostring(device.name) .. " " .. tostring(device.properties.unit))
     end
 end
 
 -----------------------------------
 -- MULTILEVEL SWITCH (COVER)
 -----------------------------------
-
 Cover = inheritFrom(PrototypeDevice)
 Cover.bridgeType = "cover"
 Cover.bridgeBinary = true
@@ -267,7 +289,6 @@ end
 -----------------------------------
 -- THERMOSTAT (MULTILEVEL SWITCH)
 -----------------------------------
-
 Thermostat = inheritFrom(PrototypeDevice)
 Thermostat.bridgeType = "climate"
 Thermostat.bridgeBinary = false
@@ -318,6 +339,44 @@ function Thermostat.isTemperatureSensor(device)
         return false
     end
 end
+
+-----------------------------------
+-- REMOTE CONTROLLER
+-----------------------------------
+RemoteController = inheritFrom(MultilevelSensor)
+RemoteController.bridgeSubtype = "remoteController"
+
+function RemoteController.isSupported(fibaroDevice)
+    if ((fibaroDevice.baseType == "com.fibaro.remoteController") or ( fibaroDevice.baseType == "com.fibaro.remoteSceneController") or ( fibaroDevice.type == "com.fibaro.remoteController") or (fibaroDevice.type == "com.fibaro.remoteSceneController"))      then
+        return true
+    else 
+        return false
+    end
+end
+
+------------------------------------
+-- REMOTE CONTROLLER - BUTTON ACTION
+------------------------------------
+RemoteControllerKey = inheritFrom(PrototypeDevice)
+RemoteControllerKey.bridgeType = "device_automation"
+RemoteControllerKey.bridgeSubtype = "trigger"
+RemoteControllerKey.bridgeBinary = true
+RemoteControllerKey.bridgeMultilevel = false
+RemoteControllerKey.bridgeRead = true
+RemoteControllerKey.bridgeWrite = false
+
+function RemoteControllerKey.isSupported(fibaroDevice)
+    if (fibaroDevice.baseType == "com.alexander_vitishchenko.remoteKey") then
+        return true
+    else 
+        return false
+    end
+end
+
+function RemoteControllerKey.init(device)
+    -- TBD ***
+end
+
 
 -----------------------------------
 -- HELPER FUNCTIONS - OVERRIDE "WRONG" DEVICE TYPES FROM FIBARO DEVICE API
@@ -398,9 +457,12 @@ deviceTypeMappings = {
     Cover, -- multilevel switch
     Light, -- binary light
     Dimmer, -- multilevel light 
+    Rgbw, -- multichannel and multilevel light
     BinarySensor,
     MultilevelSensor,
-    Thermostat
+    Thermostat,
+    RemoteController,
+    RemoteControllerKey
 }  
 
 function identifyDevice(fibaroDevice)

@@ -92,6 +92,13 @@ function MqttConventionHomeAssistant:onDisconnected()
 end
 
 function MqttConventionHomeAssistant:onDeviceCreated(device)
+    if (device.bridgeType == RemoteControllerKey.bridgeType) then
+        -- Home Assistant pretty unique spec for "device_automation/trigger" devices
+        -- so better use another factory type for MQTT Discovery Message
+        MqttConventionHomeAssistant:onRemoteControllerKeyCreated(device, self.mqtt)
+        return
+    end
+
     ------------------------------------------
     --- AVAILABILITY
     ------------------------------------------
@@ -120,17 +127,7 @@ function MqttConventionHomeAssistant:onDeviceCreated(device)
     ------------------------------------------
     --- PARENT DEVICE INFO
     ------------------------------------------
-    local parentDevice = device.bridgeParent
-    if parentDevice then
-        msg.device = {
-            identifiers = "hc3-" .. parentDevice.id,
-            name = parentDevice.name,
-            manufacturer = parentDevice.properties.zwaveCompany,
-            model = parentDevice.properties.model, 
-            -- zwave version is used instead of device software version
-            sw_version = parentDevice.properties.zwaveVersion
-        }
-    end
+    self:enrichMessageWithParentDeviceInfo(device, msg)
 
     ------------------------------------------
     --- USE "TRUE"/"FALSE" VALUE PAYLOAD, instead of "ON"/"OFF"
@@ -183,7 +180,7 @@ function MqttConventionHomeAssistant:onDeviceCreated(device)
         if (device.bridgeType == "light") then
             msg.brightness_command_topic = self:setterTopic(device, "value")
             msg.brightness_scale = 99
-            msg.on_command_type = "brightness"
+            msg.on_command_type = "first"
         elseif (device.bridgeType == "cover") then
             msg.set_position_topic = self:setterTopic(device, "value")
             msg.position_template = "{{ value_json.value }}"
@@ -218,9 +215,18 @@ function MqttConventionHomeAssistant:onDeviceCreated(device)
         -- Energy meter requires extra properties
         if (device.bridgeSubtype == "energy") then
             msg.state_class = "total_increasing"
-            --msg.state_class = "measurement"
-            --msg.last_reset_topic = self:getterTopic(device, "lastReset")
-            --msg.last_reset_value_template = "{{ value_json.value }}"
+        end
+
+        if (device.bridgeSubtype == RemoteController.bridgeSubtype) then
+            -- Remote controller sensor is not natively supported by Home Assistant, thus need to replace "remoteController" subtype with "None" device class
+            msg.device_class = nil
+            -- Add "remote" icon
+            msg.icon = "mdi:remote"
+        end
+
+        if (device.bridgeType == RemoteController.bridgeType) and (device.bridgeSubtype == RemoteController.bridgeSubtype) then
+            -- *** TBD - consider removing auto expiration
+            msg.expire_after = 10
         end
     end
 
@@ -252,15 +258,79 @@ function MqttConventionHomeAssistant:onDeviceCreated(device)
         end
     end
 
+    ------------------------------------------
+    ---- RGBW
+    ------------------------------------------
+    if (device.bridgeType == "light" and device.bridgeSubtype == "rgbw") then
+        msg.rgbw_state_topic = self:getterTopic(device, "color")
+        msg.rgbw_value_template = "{{ value_json.value.split(',')[:4] | join(',') }}"
+        msg.rgbw_command_topic = self:setterTopic(device, "color")
+    end
+
     self.mqtt:publish(self:getDeviceTopic(device) .. "config", json.encode(msg), {retain = true})
     
     self.mqtt:publish(self:getDeviceTopic(device) .. "config_json_attributes", json.encode(device.fibaroDevice), {retain = true})
 end
 
+function MqttConventionHomeAssistant:onRemoteControllerKeyCreated(device, mqtt)
+    local keyId = device.keyId
+    local keyType = self:convertKeyAttributeToType(device.keyAttribute)
+    
+    local msg = {
+        automation_type = "trigger",
+
+        topic = self:getterTopic(device, "value"),
+        value_template = "{{ value_json.value }}", 
+
+        type = keyType, 
+        subtype = "button_" .. keyId,
+        payload = keyId .. "-" .. keyType
+    }
+
+    ------------------------------------------
+    --- PARENT DEVICE INFO
+    ------------------------------------------
+    self:enrichMessageWithParentDeviceInfo(device, msg)
+
+    mqtt:publish(self:getDeviceTopic(device) .. "config", json.encode(msg), {retain = true})
+end
+
+function MqttConventionHomeAssistant:enrichMessageWithParentDeviceInfo(device, msg)
+    local parentDevice = device.bridgeParent
+    if parentDevice then
+        msg.device = {
+            identifiers = "hc3-" .. parentDevice.id,
+            name = parentDevice.name,
+            manufacturer = parentDevice.properties.zwaveCompany,
+            model = parentDevice.properties.model, 
+            -- zwave version is used instead of device software version
+            sw_version = parentDevice.properties.zwaveVersion
+        }
+    end
+end
+
+local keyAttributeToTypeMap = {
+    ["pressed"] = "button_short_press",
+    ["pressed2"] = "button_double_press",
+    ["pressed3"] = "button_triple_press",
+    ["helddown"] = "button_long_press",
+    ["released"] = "button_long_release"
+}
+function MqttConventionHomeAssistant:convertKeyAttributeToType(keyAttribute)
+    local type = keyAttributeToTypeMap[keyAttribute]
+    if not type then
+        print("Unknown key attribute \"" .. keyAttribute .. "\"")
+        type = "unknown-" .. keyAttribute
+    end
+    
+    return type
+end
+
 function MqttConventionHomeAssistant:onDeviceRemoved(device)
     self.mqtt:publish(
         self:getDeviceTopic(device) .. "config", 
-        "" 
+        "",
+        {retain = true} 
     )
 end
 
@@ -269,6 +339,9 @@ function MqttConventionHomeAssistant:onPropertyUpdated(device, event)
 
     local value = event.data.newValue
 
+    -------------------------------------------
+    -- COVER SPECIFIC
+    -------------------------------------------
     if device.bridgeType == "cover" then 
         if propertyName == "value" then
             -- Fibaro doesn't use "state" attribute for covers, so we'll trigger it on behalf of Fibaro based on "value" attribute
@@ -302,10 +375,25 @@ function MqttConventionHomeAssistant:onPropertyUpdated(device, event)
         end
     end
 
+    -------------------------------------------
+    -- REMOTE CONTROLLER (SENSOR) SPECIFIC
+    -------------------------------------------
+    if device.bridgeType == RemoteController.bridgeType and device.bridgeSubtype == RemoteController.bridgeSubtype and propertyName == "value" then
+        local keyValues = splitString(value, ",")
+
+        local keyId = keyValues[1]
+        local keyAttribute = keyValues[2]
+        local keyType = self:convertKeyAttributeToType(keyAttribute)
+        
+        value = keyId .. "-" .. keyType
+    end
+    
     value = string.lower(value)
 
-    local formattedPayload
-    if (propertyName == "dead") then
+    local formattedPayload 
+    if propertyName == "dead" then
+    -- ***
+    --if ((propertyName == "dead") or (device.bridgeType == RemoteController.bridgeType and device.bridgeSubtype == RemoteController.bridgeSubtype)) then
         formattedPayload = tostring(value)
     else
         local payload = {

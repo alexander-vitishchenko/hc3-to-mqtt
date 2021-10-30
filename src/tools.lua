@@ -170,45 +170,6 @@ function table_contains_value(tab, val)
     return false
 end
 
-function getDeviceIdFromTopic(topic)
-    local s, e = string.find(topic, "%d+")
-    --print(topic .. " | " .. tostring(s) .. " | " .. tostring(e))
-    if s then
-            return tonumber(string.sub(topic, s, e))
-    else
-        return 0
-    end
-end
-
-function createRootTopicName(device)
-return "homeassistant/" .. device.haType .. "/" .. device.id
-    --return "homeassistant/" .. device.haType .. "/" .. transliterate(device.roomName) .. "/" .. device.id .. "-" .. transliterate(device.name)
-end
-
-function createGenericEventTopicName(device, eventType, propertyName)
-    if (propertyName) then
-        return createRootTopicName(device) .. "/events/" .. eventType .. "/" .. propertyName
-    else
-        return createRootTopicName(device) .. "/events/" .. eventType
-    end
-end
-
-function createPropertyTopicName(device, propertyName)
-    return createGenericEventTopicName(device, "DevicePropertyUpdatedEvent", propertyName)     
-end
-
-function createCommandTopicName(device, commandName)
-    return createRootTopicName(device) .. "/commands/" .. "set" .. commandName:gsub("^%l", string.upper)
-end
-
-function createHaConfigTopicName(device)
-    return createRootTopicName(device) .. "/config"
-end
-
-function createHaJsonAttributesTopicName(device)
-    return createRootTopicName(device) .. "/config_json_attributes"
-end
-
 function createFibaroEventPayload(device, propertyName, newValue) 
     -- THIS IS FIBARO EVENT FORMAT => DO NOT CHANGE VARIABLE NAMES
     local payload = {
