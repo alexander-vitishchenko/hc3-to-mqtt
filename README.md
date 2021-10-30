@@ -3,10 +3,9 @@
 ## How to use
 1. Upload **hc3_to_mqtt_bridge.fqa** to your Fibaro Home Center 3
 <img src="https://user-images.githubusercontent.com/1070777/129612383-ae2d0190-b616-45f9-91de-b0cbbfedf79a.png" width="40%" height="40%">
-2. Setup your environment variables
+2. Configure your MQTT client connection
 <ul>
   <li> "<b>mqttUrl</b>" - URL for connecting to MQTT broker, e.g. "mqtt://192.168.1.10:1883"</li>
-  <li> "<b>hc3Username</b>" and "<b>hc3Password</b>" - user credentials to access event stream from your Fibaro HC3 (mandatory)</li>
   <li> "<b>mqttUsername</b>" and "<b>mqttPassword</b>" - user credentials to access your MQTT broker (optional)</li>
 </ul>
      <img src="https://user-images.githubusercontent.com/1070777/129613646-5c762c8e-e39e-4173-8741-723abe4337e2.png" width="70%" height="70%">
