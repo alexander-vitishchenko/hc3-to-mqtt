@@ -357,60 +357,40 @@ local lastRefresh = 0
 local http = net.HTTPClient()
 
 function QuickApp:scheduleHc3EventsFetcher()
-    local hc3Auth = nil
-    if (isEmptyString(hc3Auth)) then
-        local hc3Username = self:getVariable("hc3Username")
-        local hc3Password = self:getVariable("hc3Password")
-        if (isEmptyString(hc3Username) or isEmptyString(hc3Password)) then
-            self:warning("You have not provided Fibaro HC3 username and password, as result you have experimental 'passwordless' mode enabled")
-        end
-        hc3Auth = base64Encode(hc3Username .. ":" .. hc3Password)
-    end
-
-    self.hc3Auth = hc3Auth
+    local devices = api.get("/devices")
 
     self:readHc3EventAndScheduleFetcher()
+
     self:debug("---------------------------------------------------")
     self:debug("Started monitoring events from Fibaro Home Center 3")
     self:debug("---------------------------------------------------")
 end
 
 function QuickApp:readHc3EventAndScheduleFetcher()
+    -- This a reliable and high-performance method to get events from Fibaro HC3, by using non-blocking HTTP calls. Where 'passwordles' api.get() has a risk of blocking calls => peformance isues
 
-    if self.hc3Auth then
-        -- This a reliable and high-performance method to get events from Fibaro HC3, by using non-blocking HTTP calls. Where 'passwordles' api.get() has a risk of blocking calls => peformance isues
+    local requestUrl = "http://127.0.0.1:11111/api/refreshStates?last=" .. lastRefresh
+    --self:debug("Fetch events from " .. requestUrl .. " | " .. tostring(self.hc3ConnectionEnabled))
 
-        local requestUrl = "http://localhost:11111/api/refreshStates?last=" .. lastRefresh
-        --self:debug("Try fetch events from " .. requestUrl .. " | " .. tostring(self.hc3ConnectionEnabled))
-
-        local stat, res = http:request(
-            requestUrl,
-            {
-            options = {
-                headers = {
-                    ["Authorization"] = "Basic " .. self.hc3Auth,
-                }
-            },
-            success=function(res)
-                local data
-                if (res and not isEmptyString(res.data)) then
-                    self:processFibaroHc3Events(json.decode(res.data))
-                else
-                    self:error("Error while fetching events from Fibaro HC3. Response status code is " .. res.status .. ". HTTP response body is '" .. json.encode(res) .. "'")
-                    self:turnOff()
-                end
-            end,
-            error=function(res) 
-                self:error("Error while fetching Fibaro HC3 events " .. json.encode(res))
+    local devices = api.get("/devices")
+    local stat, res = http:request(
+        requestUrl,
+        {
+        options = { },
+        success=function(res)
+            local data
+            if (res and not isEmptyString(res.data)) then
+                self:processFibaroHc3Events(json.decode(res.data))
+            else
+                self:error("Error while fetching events from Fibaro HC3. Response status code is " .. res.status .. ". HTTP response body is '" .. json.encode(res) .. "'")
                 self:turnOff()
             end
-        })
-
-    else
-        -- Experimental 'passwordless' mode for Fibaro HC3
-        local res = api.get("/refreshStates?last=" .. lastRefresh)
-        self:processFibaroHc3Events(res) 
-    end
+        end,
+        error=function(res) 
+            self:error("Error while fetching Fibaro HC3 events " .. json.encode(res))
+            self:turnOff()
+        end
+    })
 
     if (self.hc3ConnectionEnabled) then
         local delay
