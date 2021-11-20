@@ -79,7 +79,7 @@ function QuickApp:getMqttConnectionParameters()
     if (mqttKeepAlivePeriod) then
         mqttConnectionParameters.keepAlivePeriod = tonumber(mqttKeepAlivePeriod)
     else
-        mqttConnectionParameters.keepAlivePeriod = 30
+        mqttConnectionParameters.keepAlivePeriod = 60
     end
 
     -- MQTT AUTH (USERNAME/PASSWORD)
@@ -221,12 +221,12 @@ function QuickApp:discoverDevices()
             getFibaroDeviceById(122), -- temperature sensor
             getFibaroDeviceById(335), -- on/off thermostat from Qubino
             getFibaroDeviceById(336), -- temperature sensor 
-            getFibaroDeviceById(398), -- temperature sensor 
-            getFibaroDeviceByInfo(json.decode(""))
+            getFibaroDeviceById(398), -- temperature sensor  
+            getFibaroDeviceByInfo(json.decode("{\n\"id\": 144,\n\"name\": \"STUDY\",\n\"roomID\": 220,\n\"view\": [\n{\n\"assetsPath\": \"/dynamic-plugins/com.fibaro.multilevelSwitch/assets\",\n\"jsPath\": \"/dynamic-plugins/com.fibaro.multilevelSwitch\",\n\"name\": \"com.fibaro.multilevelSwitch\",\n\"translatesPath\": \"/dynamic-plugins/com.fibaro.multilevelSwitch/i18n\",\n\"type\": \"ts\"\n},\n{\n\"assetsPath\": \"/assets/icon\",\n\"jsPath\": \"/dynamic-plugins/level-change\",\n\"name\": \"level-change\",\n\"translatesPath\": \"/dynamic-plugins/level-change/i18n\",\n\"type\": \"ts\"\n}\n],\n\"type\": \"com.fibaro.multilevelSwitch\",\n\"baseType\": \"com.fibaro.binarySwitch\",\n\"enabled\": true,\n\"visible\": true,\n\"isPlugin\": false,\n\"parentId\": 143,\n\"viewXml\": false,\n\"configXml\": false,\n\"interfaces\": [\n\"levelChange\",\n\"light\",\n\"zwave\",\n\"zwaveConfiguration\",\n\"zwaveMultiChannelAssociation\",\n\"zwaveSceneActivation\",\n\"zwaveSwitchAll\"\n],\n\"properties\": {\n\"parameters\": [\n{\n\"id\": 3,\n\"lastReportedValue\": 0,\n\"lastSetValue\": 0,\n\"size\": 1,\n\"value\": 0\n},\n{\n\"id\": 80,\n\"lastReportedValue\": 0,\n\"lastSetValue\": 0,\n\"size\": 1,\n\"value\": 0\n},\n{\n\"id\": 90,\n\"lastReportedValue\": 1,\n\"lastSetValue\": 1,\n\"size\": 1,\n\"value\": 1\n},\n{\n\"id\": 91,\n\"lastReportedValue\": 25,\n\"lastSetValue\": 25,\n\"size\": 2,\n\"value\": 25\n},\n{\n\"id\": 92,\n\"lastReportedValue\": 5,\n\"lastSetValue\": 5,\n\"size\": 1,\n\"value\": 5\n},\n{\n\"id\": 101,\n\"lastReportedValue\": 4,\n\"lastSetValue\": 4,\n\"size\": 4,\n\"value\": 4\n},\n{\n\"id\": 102,\n\"lastReportedValue\": 8,\n\"lastSetValue\": 8,\n\"size\": 4,\n\"value\": 8\n},\n{\n\"id\": 103,\n\"lastReportedValue\": 0,\n\"lastSetValue\": 0,\n\"size\": 4,\n\"value\": 0\n},\n{\n\"id\": 111,\n\"lastReportedValue\": 3,\n\"lastSetValue\": 3,\n\"size\": 4,\n\"value\": 3\n},\n{\n\"id\": 112,\n\"lastReportedValue\": 600,\n\"lastSetValue\": 600,\n\"size\": 4,\n\"value\": 600\n},\n{\n\"id\": 113,\n\"lastReportedValue\": 600,\n\"lastSetValue\": 600,\n\"size\": 4,\n\"value\": 600\n},\n{\n\"id\": 120,\n\"lastReportedValue\": 0,\n\"lastSetValue\": 0,\n\"size\": 1,\n\"value\": 0\n},\n{\n\"id\": 2,\n\"lastReportedValue\": 0,\n\"lastSetValue\": 0,\n\"size\": 2,\n\"value\": 0\n},\n{\n\"id\": 13,\n\"lastReportedValue\": 0,\n\"lastSetValue\": 0,\n\"size\": 1,\n\"value\": 0\n}\n],\n\"pollingTimeSec\": 0,\n\"zwaveCompany\": \"AEON Labs\",\n\"zwaveInfo\": \"3,3,40\",\n\"zwaveVersion\": \"1.15\",\n\"categories\": [\n\"lights\"\n],\n\"configured\": true,\n\"dead\": false,\n\"deadReason\": \"\",\n\"deviceControlType\": 23,\n\"deviceIcon\": 15,\n\"endPointId\": 0,\n\"isLight\": true,\n\"log\": \"\",\n\"logTemp\": \"\",\n\"manufacturer\": \"\",\n\"markAsDead\": true,\n\"model\": \"\",\n\"nodeId\": 15,\n\"parametersTemplate\": \"202\",\n\"productInfo\": \"0,134,0,3,0,19,1,15\",\n\"saveLogs\": true,\n\"sceneActivation\": 0,\n\"serialNumber\": \"\",\n\"state\": false,\n\"switchAllMode\": \"\",\n\"useTemplate\": true,\n\"userDescription\": \"\",\n\"value\": 0\n},\n\"actions\": {\n\"getParameter\": 1,\n\"reconfigure\": 0,\n\"sceneActivationSet\": 0,\n\"setParameter\": 2,\n\"setValue\": 1,\n\"startLevelDecrease\": 0,\n\"startLevelIncrease\": 0,\n\"stopLevelChange\": 0,\n\"toggle\": 0,\n\"turnOff\": 0,\n\"turnOn\": 0\n},\n\"created\": 1636542377,\n\"modified\": 1636542377,\n\"sortOrder\": 18\n}")) 
         }
     end
 
-    return fibaroDevices 
+    return fibaroDevices
 end
 
 function QuickApp:identifyDevices(fibaroDevices) 
@@ -357,8 +357,6 @@ local lastRefresh = 0
 local http = net.HTTPClient()
 
 function QuickApp:scheduleHc3EventsFetcher()
-    local devices = api.get("/devices")
-
     self:readHc3EventAndScheduleFetcher()
 
     self:debug("---------------------------------------------------")
@@ -464,11 +462,6 @@ function QuickApp:dispatchFibaroEventToMqtt(event)
         self:warning("No device id for " .. json.encode(event))
         return
     end 
-    
-    local propertyName = event.data.property
-    if not propertyName then
-        propertyName = "unknown"
-    end
 
     if (not event.type) then
         event.type = "unknown"
@@ -504,6 +497,11 @@ end
 
 function QuickApp:dispatchDevicePropertyUpdatedEvent(device, event)
     -- *** OVERRIDE FIBARO PROPERTY NAMES, FOR BEING MORE CONSISTENT AND THUS EASIER TO HANDLE 
+    local propertyName = event.data.property
+    if not propertyName then
+        propertyName = "unknown"
+    end
+
     if (device.bridgeType == "binary_sensor") and (propertyName == "value") then
         -- Fibaro uses state/value fields inconsistently for binary sensor. Replace value --> state field
         event.data.property = "state"

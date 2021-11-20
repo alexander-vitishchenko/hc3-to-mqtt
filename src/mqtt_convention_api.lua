@@ -23,7 +23,6 @@ function MqttConventionPrototype:onPropertyUpdated(device, event)
     error("function is mandatory for implementation")
 end
 
-
 function MqttConventionPrototype:onCommand(event)
     error("function is mandatory for implementation")
 end

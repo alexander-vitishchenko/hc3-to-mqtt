@@ -24,7 +24,7 @@ function PrototypeDevice:new(fibaroDevice)
         device.roomName = tostring(fibaro.getRoomNameByDeviceID(device.id))
     end
 
-    self:init(device) 
+    self:init(device)
 
     return device
 end
@@ -89,10 +89,10 @@ Switch.bridgeSubtype = "binary"
 Switch.bridgeBinary = true
 Switch.bridgeMultilevel = false
 Switch.bridgeRead = true
-Switch.bridgeWrite = true
+Switch.bridgeWrite = true 
 
 function Switch.isSupported(fibaroDevice)
-    if ((fibaroDevice.baseType == "com.fibaro.binarySwitch") or (fibaroDevice.type == "com.fibaro.binarySwitch")) and not table_contains_value(fibaroDevice.interfaces, "light") then
+    if fibaroDeviceHasType(fibaroDevice, "com.fibaro.binarySwitch") and fibaroDeviceHasNoInterface(fibaroDevice, "light") then
         return true
     else 
         return false
@@ -111,7 +111,7 @@ Light.bridgeRead = true
 Light.bridgeWrite = true
 
 function Light.isSupported(fibaroDevice)
-    if ((fibaroDevice.baseType == "com.fibaro.binarySwitch") or (fibaroDevice.type == "com.fibaro.binarySwitch")) and table_contains_value(fibaroDevice.interfaces, "light") then
+    if fibaroDeviceHasType(fibaroDevice, "com.fibaro.binarySwitch") and fibaroDeviceHasNoType(fibaroDevice, "com.fibaro.multilevelSwitch") and fibaroDeviceHasInterface(fibaroDevice, "light") then
         return true
     else 
         return false
@@ -130,7 +130,7 @@ Dimmer.bridgeRead = true
 Dimmer.bridgeWrite = true
 
 function Dimmer.isSupported(fibaroDevice)
-    if (fibaroDevice.baseType == "com.fibaro.multilevelSwitch") and table_contains_value(fibaroDevice.interfaces, "light")      then
+    if fibaroDeviceHasType(fibaroDevice, "com.fibaro.multilevelSwitch") and fibaroDeviceHasInterface(fibaroDevice, "light") then
         return true
     else 
         return false
@@ -149,7 +149,7 @@ Rgbw.bridgeRead = true
 Rgbw.bridgeWrite = true
 
 function Rgbw.isSupported(fibaroDevice)
-    if (fibaroDevice.baseType == "com.fibaro.colorController") and table_contains_value(fibaroDevice.interfaces, "light")      then
+    if fibaroDeviceHasType(fibaroDevice, "com.fibaro.colorController") and fibaroDeviceHasInterface(fibaroDevice, "light") then
         return true
     else 
         return false
@@ -168,7 +168,8 @@ BinarySensor.bridgeWrite = false
 
 function BinarySensor.isSupported(fibaroDevice)
     if (string.find(fibaroDevice.baseType, "Sensor")) or (string.find(fibaroDevice.baseType, "sensor")) then
-        if (fibaroDevice.baseType ~= "com.fibaro.multilevelSensor") and (fibaroDevice.type ~= "com.fibaro.multilevelSensor") then
+        --if (fibaroDevice.baseType ~= "com.fibaro.multilevelSensor") and (fibaroDevice.type ~= "com.fibaro.multilevelSensor") then
+        if fibaroDeviceHasNoType(fibaroDevice, "com.fibaro.multilevelSensor") then
             return true 
         end
     end
@@ -374,7 +375,7 @@ function RemoteControllerKey.isSupported(fibaroDevice)
 end
 
 function RemoteControllerKey.init(device)
-    -- TBD ***
+    -- not needed for now
 end
 
 
@@ -446,6 +447,22 @@ function overrideFibaroDeviceType(fibaroDevice)
     if overrideBaseType then 
         fibaroDevice.baseType = overrideBaseType
     end
+end
+
+function fibaroDeviceHasType(fibaroDevice, type)
+    return (fibaroDevice.baseType == type) or (fibaroDevice.type == type)
+end
+
+function fibaroDeviceHasNoType(fibaroDevice, type)
+    return not fibaroDeviceHasType(fibaroDevice, type)
+end
+
+function fibaroDeviceHasInterface(fibaroDevice, interface)
+    return table_contains_value(fibaroDevice.interfaces, interface)
+end
+
+function fibaroDeviceHasNoInterface(fibaroDevice, interface)
+    return not fibaroDeviceHasInterface(fibaroDevice, interface)
 end
 
 -----------------------------------
