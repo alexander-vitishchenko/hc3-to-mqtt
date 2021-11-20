@@ -8,7 +8,8 @@
   <li> "<b>mqttUrl</b>" - URL for connecting to MQTT broker, e.g. "mqtt://192.168.1.10:1883"</li>
   <li> "<b>mqttUsername</b>" and "<b>mqttPassword</b>" - user credentials to access your MQTT broker (optional)</li>
 </ul>
-     <img src="https://user-images.githubusercontent.com/1070777/129613646-5c762c8e-e39e-4173-8741-723abe4337e2.png" width="70%" height="70%">
+     <img src="https://user-images.githubusercontent.com/1070777/139558918-f38ff0f7-3753-40e2-a611-6b99b94498d5.png" width="70%" height="70%">
+
 
 ## Device support
    * Sensors - Fibaro Motion Sensor, Fibaro Universal Sensor, Fibaro Flood Sensor, Fibaro Smoke/Fire Sensor, most of the generic temperature/humidity/brightness/etc sensors
@@ -16,6 +17,8 @@
    * Thermostats - with a limited model support, but I can get it implemented if you send me device configuration, or the sample device ideally 
    * Shutters - Fibaro Shutter
    * Energy and power meters
+   * RGBW
+   * Remote Controllers, where each key is binded to automation triggers visible in Home Assistant GUI
 
 ## Your donations are welcome!
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate?hosted_button_id=7FXBMQKCWESLN).
