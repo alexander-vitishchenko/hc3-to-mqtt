@@ -222,7 +222,7 @@ function QuickApp:discoverDevices()
             getFibaroDeviceById(335), -- on/off thermostat from Qubino
             getFibaroDeviceById(336), -- temperature sensor 
             getFibaroDeviceById(398), -- temperature sensor  
-            getFibaroDeviceByInfo(json.decode("{\n\"id\": 144,\n\"name\": \"STUDY\",\n\"roomID\": 220,\n\"view\": [\n{\n\"assetsPath\": \"/dynamic-plugins/com.fibaro.multilevelSwitch/assets\",\n\"jsPath\": \"/dynamic-plugins/com.fibaro.multilevelSwitch\",\n\"name\": \"com.fibaro.multilevelSwitch\",\n\"translatesPath\": \"/dynamic-plugins/com.fibaro.multilevelSwitch/i18n\",\n\"type\": \"ts\"\n},\n{\n\"assetsPath\": \"/assets/icon\",\n\"jsPath\": \"/dynamic-plugins/level-change\",\n\"name\": \"level-change\",\n\"translatesPath\": \"/dynamic-plugins/level-change/i18n\",\n\"type\": \"ts\"\n}\n],\n\"type\": \"com.fibaro.multilevelSwitch\",\n\"baseType\": \"com.fibaro.binarySwitch\",\n\"enabled\": true,\n\"visible\": true,\n\"isPlugin\": false,\n\"parentId\": 143,\n\"viewXml\": false,\n\"configXml\": false,\n\"interfaces\": [\n\"levelChange\",\n\"light\",\n\"zwave\",\n\"zwaveConfiguration\",\n\"zwaveMultiChannelAssociation\",\n\"zwaveSceneActivation\",\n\"zwaveSwitchAll\"\n],\n\"properties\": {\n\"parameters\": [\n{\n\"id\": 3,\n\"lastReportedValue\": 0,\n\"lastSetValue\": 0,\n\"size\": 1,\n\"value\": 0\n},\n{\n\"id\": 80,\n\"lastReportedValue\": 0,\n\"lastSetValue\": 0,\n\"size\": 1,\n\"value\": 0\n},\n{\n\"id\": 90,\n\"lastReportedValue\": 1,\n\"lastSetValue\": 1,\n\"size\": 1,\n\"value\": 1\n},\n{\n\"id\": 91,\n\"lastReportedValue\": 25,\n\"lastSetValue\": 25,\n\"size\": 2,\n\"value\": 25\n},\n{\n\"id\": 92,\n\"lastReportedValue\": 5,\n\"lastSetValue\": 5,\n\"size\": 1,\n\"value\": 5\n},\n{\n\"id\": 101,\n\"lastReportedValue\": 4,\n\"lastSetValue\": 4,\n\"size\": 4,\n\"value\": 4\n},\n{\n\"id\": 102,\n\"lastReportedValue\": 8,\n\"lastSetValue\": 8,\n\"size\": 4,\n\"value\": 8\n},\n{\n\"id\": 103,\n\"lastReportedValue\": 0,\n\"lastSetValue\": 0,\n\"size\": 4,\n\"value\": 0\n},\n{\n\"id\": 111,\n\"lastReportedValue\": 3,\n\"lastSetValue\": 3,\n\"size\": 4,\n\"value\": 3\n},\n{\n\"id\": 112,\n\"lastReportedValue\": 600,\n\"lastSetValue\": 600,\n\"size\": 4,\n\"value\": 600\n},\n{\n\"id\": 113,\n\"lastReportedValue\": 600,\n\"lastSetValue\": 600,\n\"size\": 4,\n\"value\": 600\n},\n{\n\"id\": 120,\n\"lastReportedValue\": 0,\n\"lastSetValue\": 0,\n\"size\": 1,\n\"value\": 0\n},\n{\n\"id\": 2,\n\"lastReportedValue\": 0,\n\"lastSetValue\": 0,\n\"size\": 2,\n\"value\": 0\n},\n{\n\"id\": 13,\n\"lastReportedValue\": 0,\n\"lastSetValue\": 0,\n\"size\": 1,\n\"value\": 0\n}\n],\n\"pollingTimeSec\": 0,\n\"zwaveCompany\": \"AEON Labs\",\n\"zwaveInfo\": \"3,3,40\",\n\"zwaveVersion\": \"1.15\",\n\"categories\": [\n\"lights\"\n],\n\"configured\": true,\n\"dead\": false,\n\"deadReason\": \"\",\n\"deviceControlType\": 23,\n\"deviceIcon\": 15,\n\"endPointId\": 0,\n\"isLight\": true,\n\"log\": \"\",\n\"logTemp\": \"\",\n\"manufacturer\": \"\",\n\"markAsDead\": true,\n\"model\": \"\",\n\"nodeId\": 15,\n\"parametersTemplate\": \"202\",\n\"productInfo\": \"0,134,0,3,0,19,1,15\",\n\"saveLogs\": true,\n\"sceneActivation\": 0,\n\"serialNumber\": \"\",\n\"state\": false,\n\"switchAllMode\": \"\",\n\"useTemplate\": true,\n\"userDescription\": \"\",\n\"value\": 0\n},\n\"actions\": {\n\"getParameter\": 1,\n\"reconfigure\": 0,\n\"sceneActivationSet\": 0,\n\"setParameter\": 2,\n\"setValue\": 1,\n\"startLevelDecrease\": 0,\n\"startLevelIncrease\": 0,\n\"stopLevelChange\": 0,\n\"toggle\": 0,\n\"turnOff\": 0,\n\"turnOn\": 0\n},\n\"created\": 1636542377,\n\"modified\": 1636542377,\n\"sortOrder\": 18\n}")) 
+            getFibaroDeviceByInfo(json.decode("PUT YOUR DEVICE SPEC FROM FIBARO HC3 HERE")) 
         }
     end
 
@@ -370,7 +370,6 @@ function QuickApp:readHc3EventAndScheduleFetcher()
     local requestUrl = "http://127.0.0.1:11111/api/refreshStates?last=" .. lastRefresh
     --self:debug("Fetch events from " .. requestUrl .. " | " .. tostring(self.hc3ConnectionEnabled))
 
-    local devices = api.get("/devices")
     local stat, res = http:request(
         requestUrl,
         {
@@ -484,12 +483,19 @@ function QuickApp:dispatchFibaroEventToMqtt(event)
         elseif (event.type == "DeviceRemovedEvent") then 
             self:dispatchDeviceRemovedEvent(device)
         elseif (event.type == "DeviceActionRanEvent") then
+            --[[
             if (event.data.actionName == "turnOn" or event.data.actionName == "turnOff") then
-                --self:rememberLastHc3CommandTime(deviceId, event.sourceType)
+                self:rememberLastHc3CommandTime(deviceId, event.sourceType)
             end
+            ]]--
         else
-            self:debug("Unsupported event type \"" .. tostring(event.type) .. "\" for \"" .. self:getDeviceDescription(device) .. "\". All is good - feel free raise a request, and it will be possibly implemented - https://github.com/alexander-vitishchenko/hc3-to-mqtt/issues/new")
-            self:debug(json.encode(event))
+            local eventType = tostring(event.type)
+            if (eventType == "PluginChangedViewEvent") then
+                -- exclude the event type from Debug view, as it's not intended for translation to Home Assistant world, and thus no need to confuse QuickApp users
+            else
+                self:debug("Unsupported event type \"" .. eventType .. "\" for \"" .. self:getDeviceDescription(device) .. "\". All is good - feel free raise a request, and it could be possibly implemented in a future - https://github.com/alexander-vitishchenko/hc3-to-mqtt/issues/new")
+                self:debug(json.encode(event))
+            end
         end
 
     end
