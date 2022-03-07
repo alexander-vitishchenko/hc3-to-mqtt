@@ -1,7 +1,7 @@
 # "Fibaro Home Center 3" to "Home Assistant" integration
 
 ## ❗ Warning
-I had to move out of Kyiv because of the war in Ukraine => feature requests are put on hold until further notice
+I had to move out of Kyiv to Berlin because of the war in Ukraine => feature requests are put on hold until further notice as I need to accomodate at a new place as soon as possible.
 
 ## How to use
 1. Upload **hc3_to_mqtt_bridge.fqa** to your Fibaro Home Center 3
