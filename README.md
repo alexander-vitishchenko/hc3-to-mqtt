@@ -1,7 +1,7 @@
 # "Fibaro Home Center 3" to "Home Assistant" integration
 
 ## ❗ Warning
-I had to move out of Kyiv to Berlin because of the war in Ukraine => feature requests are put on hold until further notice as I need to accomodate at a new place as soon as possible.
+I had to move out of Kyiv to Berlin because of the war in Ukraine => feature requests are put on hold until further notice, as I need to accomodate at a new place as soon as possible.
 
 ## How to use
 1. Upload **hc3_to_mqtt_bridge.fqa** to your Fibaro Home Center 3
@@ -25,10 +25,7 @@ I had to move out of Kyiv to Berlin because of the war in Ukraine => feature req
 -->
 
 ## Your donations are welcome!
-[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate?hosted_button_id=7FXBMQKCWESLN).
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate/?hosted_button_id=PXJSVSJKJ855N).
 \
 \
 I can add new device support by buying new hardware for testing and allocating more time to programming during weekends.
-\
-\
-Note: I'm using my mother's PayPal because (a) I'd like to support my parents ;-) (b) I'm located in Ukraine and technically not able to get direct donations, and my mother is located Germany where PayPal payments work like a charm
