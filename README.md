@@ -28,4 +28,4 @@ I had to move out of Kyiv to Berlin because of the war in Ukraine => feature req
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate/?hosted_button_id=PXJSVSJKJ855N).
 \
 \
-I can add new device support by buying new hardware for testing and allocating more time to programming during weekends.
+I can add new device support and buy new hardware for testing during weekends.
