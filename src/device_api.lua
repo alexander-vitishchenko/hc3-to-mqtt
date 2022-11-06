@@ -11,7 +11,7 @@ PrototypeDevice = {
     bridgeWrite = "'bridgeWrite' needs to be set",
     bridgeModes = "'bridgeWrite' needs to be set to an array of modes, e.g. 'heat', 'cool'",
     customPropertySetters = nil -- could be optionally set by child class
-}
+} 
 
 function PrototypeDevice:new(fibaroDevice)
     -- clone self, and copy fibaroDevice
@@ -47,10 +47,10 @@ function PrototypeDevice:setProperty(propertyName, value)
         -- DEFAULT PROPERTY SETTER
         if (propertyName == "state") then
             if (value == "true") then
-                print("Turn ON for device #" .. self.id)
+                --print("Turn ON for device #" .. self.id)
                 fibaro.call(self.id, "turnOn")
             elseif (value == "false") then
-                print("Turn OFF for device #" .. self.id)
+                --print("Turn OFF for device #" .. self.id)
                 fibaro.call(self.id, "turnOff")
             else
                 print("Unexpected value: " .. json.encode(event))
@@ -60,7 +60,7 @@ function PrototypeDevice:setProperty(propertyName, value)
             local secondPart = string.sub(propertyName, 2, string.len(propertyName))
 
             local functionName = "set" .. firstPart .. secondPart
-            print("CALL \"" .. functionName .. "\", with VALUE \"" .. value .. "\" for device #" .. self.id)
+            print("FUNCTION CALL: \"" .. functionName .. "\", with VALUE \"" .. value .. "\" for device #" .. self.id)
 
             if (propertyName == "color") then
                 local newRgbw = splitStringToNumbers(value, ",")
@@ -71,7 +71,7 @@ function PrototypeDevice:setProperty(propertyName, value)
         end
     else
         -- CUSTOM PROPERTY SETTER
-        print("SET \"" .. propertyName .. "\" to \"" .. value .. "\" for device #" .. self.id)
+        print("[CUSTOM PROPERTY] SET \"" .. propertyName .. "\" to \"" .. value .. "\" for device #" .. self.id)
         customPropertySetter(propertyName, value)
     end
 end
@@ -239,6 +239,8 @@ function MultilevelSensor:init(device)
         device.bridgeSubtype = "energy"
     elseif (device.type == "com.fibaro.powerSensor") then 
         device.bridgeSubtype = "power"
+    elseif (device.type == "com.fibaro.batteryLevelSensor") then 
+        device.bridgeSubtype = "battery"
     elseif (device.bridgeSubtype == RemoteController.bridgeSubtype) then 
         -- do nothing / the purpose for this logical condition is to make sure RemoteController doesn't fall into "Unknown multilevel sensor" category
     elseif (device.properties.unit == "V") then
@@ -247,10 +249,8 @@ function MultilevelSensor:init(device)
         device.bridgeSubtype = "current"
     elseif (device.properties.unit == "W" or device.properties.unit == "kW" or device.properties.unit == "kVA") then
         device.bridgeSubtype = "power"
-    elseif (device.properties.unit == "min(s)") then
-        device.bridgeSubtype = "battery"
     else
-        print("[MultilevelSensor.init] Unknown multilevel sensor " .. tostring(device.id) .. " " .. tostring(device.name) .. " " .. tostring(device.properties.unit))
+        print("[MultilevelSensor.init] Using default sensor type, as couldn't identify specialisation for " .. tostring(device.id) .. " " .. tostring(device.name) .. " " .. tostring(device.properties.unit))
     end
 end
 
@@ -322,7 +322,7 @@ end
 function Thermostat:getTemperatureSensor(allDevices)
     local device = allDevices[self.id + 1]
     if (not Thermostat.isTemperatureSensor(device)) then
-        -- *** no laughs, to be refactored :)
+        -- *** no laughs, to be refactored with linked devices later :)
         device = allDevices[self.id + 2]
     end
 
@@ -409,9 +409,36 @@ function getFibaroDevicesByFilter(filter)
         firstParameter = false
     end
 
-    print("Device filter URI '" .. "/devices?" .. filterStr .. "'")
+    local filterUri = "/devices?" .. filterStr
+    print("Device filter URI '" .. filterUri .. "'")
 
-    local allDevices = api.get("/devices?" .. filterStr)
+    local allDevices = api.get(filterUri)
+    print("Found devices " .. #allDevices)
+
+    --[[
+    local allDevices2 = api.post(
+        "/devices/filter", 
+        {
+            filters = {
+                {
+                    filter = "enabled",
+                    value = { true }
+                },
+                {
+                    filter = "visible",
+                    value = { true }
+                },
+                {
+                    filter = "deviceID", 
+                    value = {  }
+                }
+            }, 
+            attributes = {
+                main = {"id", "name", "roomID", "view", "type", "baseType", "enabled", "visible", "isPlugin", "parentId", "viewXml", "hasUIView", "configXml", "interface", "properties", "actions", "created", "modified", "sortOrder"}
+            }
+        }
+    )
+    ]]--
 
     for i, j in ipairs(allDevices) do
         overrideFibaroDeviceType(j)
