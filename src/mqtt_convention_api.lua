@@ -54,6 +54,10 @@ function MqttConventionHomeAssistant:getterTopic(device, propertyName)
         local result = self:getGenericEventTopic(device.linkedDevice, "DevicePropertyUpdatedEvent", device.linkedProperty)
 
         return result
+    elseif (device.linkedDevice and propertyName == "dead") then
+        local result = self:getGenericEventTopic(device.linkedDevice, "DevicePropertyUpdatedEvent", "dead")
+
+        return result
     else
         return self:getGenericEventTopic(device, "DevicePropertyUpdatedEvent", propertyName)
     end
