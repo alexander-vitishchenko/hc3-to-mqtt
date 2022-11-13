@@ -178,6 +178,7 @@ function QuickApp:discoverDevicesAndPublishToMqtt()
     self:updateView("bridgedDevices", "text", "Bridged devices: " .. bridgedDevices) 
     self:updateView("bootTime" , "text", "Boot time: " .. diff .. "s")
 
+    self:debug("")
     self:debug("----------------------------------")
     self:debug("Device discovery has been complete")
     self:debug("----------------------------------")
@@ -192,25 +193,16 @@ function QuickApp:discoverDevices()
     if ((not developmentModeStr) or (developmentModeStr ~= "true")) then
         self:debug("Bridge mode: PRODUCTION")
 
-        local deviceFilterJson = {
-            enabled = true,
-            visible = true
-        }
+        local customDeviceFilterJsonStr = self:getVariable("deviceFilter")
 
-        --[[
-        if (not isEmptyString(customDeviceFilterJsonStr)) then
-            local customDeviceFilterJson = json.decode(customDeviceFilterJsonStr)
-            shallowCopyTo(customDeviceFilterJson, deviceFilterJson)
-        end
-        ]]--
-
-        fibaroDevices = getFibaroDevicesByFilter(deviceFilterJson)
+        fibaroDevices = getFibaroDevicesByFilter(customDeviceFilterJsonStr)
     else
         --smaller number of devices for development and testing purposes
         self:debug("Bridge mode: DEVELOPMENT")
 
         fibaroDevices = {
             getFibaroDeviceById(41), -- switch Onyx light,
+            --[[
             getFibaroDeviceById(42), -- switch Fan,
             getFibaroDeviceById(260), -- iPad screen
             getFibaroDeviceById(287), -- door sensor
@@ -227,7 +219,12 @@ function QuickApp:discoverDevices()
             getFibaroDeviceById(335), -- on/off thermostat from Qubino
             getFibaroDeviceById(336), -- temperature sensor 
             getFibaroDeviceById(398), -- temperature sensor  
-            getFibaroDeviceByInfo(json.decode("PUT YOUR DEVICE SPEC FROM FIBARO HC3 HERE")) 
+            ]]--
+            getFibaroDeviceByInfo(
+                json.decode(
+                    "PUT YOUR JSON HERE"
+                )
+            ) 
         }
     end
 
@@ -366,6 +363,7 @@ local http = net.HTTPClient()
 function QuickApp:scheduleHc3EventsFetcher()
     self:readHc3EventAndScheduleFetcher()
 
+    self:debug("")
     self:debug("---------------------------------------------------")
     self:debug("Started monitoring events from Fibaro Home Center 3")
     self:debug("---------------------------------------------------")
@@ -478,12 +476,10 @@ function QuickApp:dispatchFibaroEventToMqtt(event)
 
     if (device) then
         if (event.type == "DevicePropertyUpdatedEvent") then
-            --self:trace("Q")
             self:dispatchDevicePropertyUpdatedEvent(device, event) 
         elseif (event.type == "CentralSceneEvent") then
             -- fabricate property updated event, instead of "CentralSceneEvent", so we reuse the existing value dispatch mechanism rather than reinventing a wheel
             local keyValueMapAsString = event.data.keyId .. "," .. string.lower(event.data.keyAttribute)
-            --self:trace("W")
             self:trace("Action => " .. event.data.keyId .. "-" .. string.lower(event.data.keyAttribute))
             self:simulatePropertyUpdate(device, "value", keyValueMapAsString)
         elseif (event.type == "DeviceModifiedEvent") then
@@ -493,12 +489,6 @@ function QuickApp:dispatchFibaroEventToMqtt(event)
         elseif (event.type == "DeviceRemovedEvent") then 
             self:dispatchDeviceRemovedEvent(device)
         elseif (event.type == "DeviceActionRanEvent") then
-            -- Deprecated and to be removed in the future as redundant
-            --[[
-            if (event.data.actionName == "turnOn" or event.data.actionName == "turnOff") then
-                self:rememberLastHc3CommandTime(deviceId, event.sourceType)
-            end
-            ]]--
         else
             local eventType = tostring(event.type)
             if (eventType == "PluginChangedViewEvent") then

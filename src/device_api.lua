@@ -397,27 +397,79 @@ local fibaroTypeOverride = {
     ["com.fibaro.FGWP102"] = "com.fibaro.binarySwitch"
 }
 
-function getFibaroDevicesByFilter(filter)
-    local filterStr = ""
-
-    local firstParameter = true
-    for i, j in pairs(filter) do
-        if (not firstParameter) then
-            filterStr = filterStr .. "&"
-        end
-        filterStr = filterStr .. i .. "=" .. tostring(j)
-        firstParameter = false
-    end
-
-    local filterUri = "/devices?" .. filterStr
-    print("Device filter URI '" .. filterUri .. "'")
-
-    local allDevices = api.get(filterUri)
-    print("Found devices " .. #allDevices)
-
+function getFibaroDevicesByFilter(customDeviceFilterJsonStr)
+    -- EXAMPLE FILTERS FROM  https://manuals.fibaro.com/content/other/FIBARO_System_Lua_API.pdf => "fibaro:getDevicesId(filters)"
     --[[
-    local allDevices2 = api.post(
-        "/devices/filter", 
+            {
+                "filter": "hasProperty",
+                "value": ["configured", "dead", "model"]
+            },
+
+            {
+                "filter": "interface",
+                "value": ["zwave", "levelChange"]
+            },
+
+            {
+                "filter": "parentId",
+                "value": [664]
+            },
+
+            {
+                "filter": "type",
+                "value": ["com.fibaro.multilevelSwitch"]
+            },
+
+            {
+                "filter": "roomID",
+                "value": [2, 3]
+            },
+
+            {
+                "filter": "baseType",
+                "value": ["com.fibaro.binarySwitch"]
+            },
+
+            {
+                "filter": "isTypeOf",
+                "value": ["com.fibaro.binarySwitch"]
+            },
+
+            {
+                "filter": "isPlugin",
+                "value": [true]
+            },
+
+            {
+                "filter": "propertyEquals",
+                "value":
+                    [
+                        {
+                            "propertyName": "configured",
+                            "propertyValue": [true]
+                        },
+                        {
+                            "propertyName": "dead",
+                            "propertyValue": [false]
+                        },
+                        {
+                            "propertyName": "deviceIcon",
+                            "propertyValue": [15]
+                        },
+                        {
+                            "propertyName": "deviceControlType",
+                            "propertyValue": [15,20,25]
+                        }
+                    ]
+            },
+
+            {
+                "filter": "deviceID",
+                "value": [55,120,902]
+            }
+    ]]--
+    
+    local deviceFilterJson = 
         {
             filters = {
                 {
@@ -427,18 +479,33 @@ function getFibaroDevicesByFilter(filter)
                 {
                     filter = "visible",
                     value = { true }
-                },
-                {
-                    filter = "deviceID", 
-                    value = {  }
                 }
             }, 
             attributes = {
+                -- define the list of Fibaro device attributes we are interested in
                 main = {"id", "name", "roomID", "view", "type", "baseType", "enabled", "visible", "isPlugin", "parentId", "viewXml", "hasUIView", "configXml", "interface", "properties", "actions", "created", "modified", "sortOrder"}
             }
         }
+
+    if (not isEmptyString(customDeviceFilterJsonStr)) then
+        print("")
+        print("(!) Apply custom device filter: " .. tostring(customDeviceFilterJsonStr))
+        print("--> It will only work if the provided filter is JSON like: " .. "{\"filter\":\"baseType\", \"value\":[\"com.fibaro.actor\"]},   {\"filter\":\"deviceID\", \"value\":[41,42]},   { MORE FILTERS MAY GO HERE }")
+        print("--> See the list of Fibaro API filters at https://manuals.fibaro.com/content/other/FIBARO_System_Lua_API.pdf => \"fibaro:getDevicesId(filters)\"")
+        print("")
+
+        local customDeviceFilterJson = json.decode("{ filters: [ " .. customDeviceFilterJsonStr .. "] }")
+
+        shallowInsertTo(customDeviceFilterJson.filters, deviceFilterJson.filters)
+    end
+
+    local allDevices = api.post( 
+        "/devices/filter", 
+        deviceFilterJson
     )
-    ]]--
+
+    print("Found devices " .. #allDevices)
+    print("")
 
     for i, j in ipairs(allDevices) do
         overrideFibaroDeviceType(j)

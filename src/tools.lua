@@ -233,6 +233,17 @@ function decodeBase64Auth(encoded)
     end
 end
 
+function shallowInsertTo(from, to)
+    local orig_type = type(from)
+    if orig_type == 'table' then
+        for orig_key, orig_value in pairs(from) do
+            table.insert(to, orig_value)
+        end
+    else -- number, string, boolean, etc
+        copy = from
+    end
+end
+
 function shallowCopyTo(from, to)
     local orig_type = type(from)
     if orig_type == 'table' then
