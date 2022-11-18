@@ -7,11 +7,12 @@ I had to move out of Kyiv to Berlin because of Russian's war against Ukraine => 
 1. Upload **hc3_to_mqtt_bridge.fqa** to your Fibaro Home Center 3
 <img src="https://user-images.githubusercontent.com/1070777/129612383-ae2d0190-b616-45f9-91de-b0cbbfedf79a.png" width="30%" height="30%">
 2. Configure your MQTT client connection
+<img src="https://user-images.githubusercontent.com/1070777/139558918-f38ff0f7-3753-40e2-a611-6b99b94498d5.png" width="45%" height="45%">
 <ul>
   <li> "<b>mqttUrl</b>" - URL for connecting to MQTT broker, e.g. "mqtt://192.168.1.10:1883"</li>
-  <li> "<b>mqttUsername</b>" and "<b>mqttPassword</b>" - user credentials to access your MQTT broker (optional)</li>
+  <li> "<b>mqttUsername</b>" and "<b>mqttPassword</b>" (optional) - user credentials to access your MQTT broker</li>
+  <li> "<b>deviceFilter</b>" (optional) - apply your filters for Fibaro HC3 device autodiscovery in case you need to limit the number of devices to be bridged with Home Assistant. Example <code>{"filter":"baseType", "value":["com.fibaro.actor"]}, {"filter":"deviceID", "value":[41,42]}, { MORE FILTERS MAY GO HERE }</code>. See available filter types at Fibaro API docs  https://manuals.fibaro.com/content/other/FIBARO_System_Lua_API.pdf => "fibaro:getDevicesId(filters)"</li>
 </ul>
-<img src="https://user-images.githubusercontent.com/1070777/139558918-f38ff0f7-3753-40e2-a611-6b99b94498d5.png" width="45%" height="45%">
 
 <!--
 ## Device support
