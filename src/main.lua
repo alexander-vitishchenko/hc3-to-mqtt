@@ -201,8 +201,8 @@ function QuickApp:discoverDevices()
         self:debug("Bridge mode: DEVELOPMENT")
 
         fibaroDevices = {
-            getFibaroDeviceById(41), -- switch Onyx light,
             --[[
+            getFibaroDeviceById(41), -- switch Onyx light,
             getFibaroDeviceById(42), -- switch Fan,
             getFibaroDeviceById(260), -- iPad screen
             getFibaroDeviceById(287), -- door sensor
