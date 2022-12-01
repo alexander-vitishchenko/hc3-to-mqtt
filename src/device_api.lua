@@ -230,7 +230,7 @@ function MultilevelSensor:init(device)
     -- ToDo *** refactor with mappings
     if (device.type == "com.fibaro.temperatureSensor") then
         device.bridgeSubtype = "temperature"
-        device.bridgeUnitOfMeasurement = "°" .. device.properties.unit
+        device.bridgeUnitOfMeasurement = "Â°" .. device.properties.unit
     elseif (device.type == "com.fibaro.lightSensor") then
         device.bridgeSubtype = "illuminance"
     elseif (device.type == "com.fibaro.humiditySensor") then 
@@ -483,7 +483,9 @@ function getFibaroDevicesByFilter(customDeviceFilterJsonStr)
             }, 
             attributes = {
                 -- define the list of Fibaro device attributes we are interested in
-                main = {"id", "name", "roomID", "view", "type", "baseType", "enabled", "visible", "isPlugin", "parentId", "viewXml", "hasUIView", "configXml", "interface", "properties", "actions", "created", "modified", "sortOrder"}
+                main = {
+                    "id", "name", "roomID", "view", "type", "baseType", "enabled", "visible", "isPlugin", "parentId", "viewXml", "hasUIView", "configXml", "interface", "properties", "actions", "created", "modified", "sortOrder"
+                }
             }
         }
 
