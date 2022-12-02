@@ -484,7 +484,7 @@ function getFibaroDevicesByFilter(customDeviceFilterJsonStr)
             attributes = {
                 -- define the list of Fibaro device attributes we are interested in
                 main = {
-                    "id", "name", "roomID", "view", "type", "baseType", "enabled", "visible", "isPlugin", "parentId", "viewXml", "hasUIView", "configXml", "interface", "properties", "actions", "created", "modified", "sortOrder"
+                    "id", "name", "roomID", "view", "type", "baseType", "enabled", "visible", "isPlugin", "parentId", "viewXml", "hasUIView", "configXml", "interfaces", "properties", "actions", "created", "modified", "sortOrder"
                 }
             }
         }
@@ -496,7 +496,7 @@ function getFibaroDevicesByFilter(customDeviceFilterJsonStr)
         print("--> See the list of Fibaro API filter types at https://manuals.fibaro.com/content/other/FIBARO_System_Lua_API.pdf => \"fibaro:getDevicesId(filters)\"")
         print("")
 
-        local customDeviceFilterJson = json.decode("{ filters: [ " .. customDeviceFilterJsonStr .. "] }")
+        local customDeviceFilterJson = json.decode("{ filters: [ " .. customDeviceFilterJsonStr .. "] }") 
 
         shallowInsertTo(customDeviceFilterJson.filters, deviceFilterJson.filters)
     end
@@ -505,6 +505,8 @@ function getFibaroDevicesByFilter(customDeviceFilterJsonStr)
         "/devices/filter", 
         deviceFilterJson
     )
+
+    print("Filter: " .. json.encode(deviceFilterJson))
 
     print("Found devices " .. #allDevices)
     print("")
