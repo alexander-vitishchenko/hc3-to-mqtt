@@ -22,6 +22,7 @@ I had to move out of Kyiv to Berlin because of Russian's war against Ukraine => 
 </li>
 </ul>
 </ol>
+
 <!--
 ## Device support
    * Sensors - Fibaro Motion Sensor, Fibaro Universal Sensor, Fibaro Flood Sensor, Fibaro Smoke/Fire Sensor, most of the generic temperature/humidity/brightness/etc sensors
