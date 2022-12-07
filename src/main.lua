@@ -567,3 +567,4 @@ function QuickApp:getDeviceDescription(device)
     end
 end
 \n--Test
+\n--Test
