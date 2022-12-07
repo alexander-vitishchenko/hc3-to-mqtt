@@ -4,7 +4,7 @@
 I had to move out of Kyiv to Berlin because of Russian's war against Ukraine => feature requests take more time because need to accommodate at new place.
 
 ## How to use
-1. Upload **hc3_to_mqtt_bridge.fqa** to your Fibaro Home Center 3
+1. Save [hc3_to_mqtt_bridge.fqa](https://github.com/alexander-vitishchenko/hc3-to-mqtt/blob/master/hc3_to_mqtt_bridge.fqa) to your computer, and then upload it to your Fibaro Home Center 3
 <img src="https://user-images.githubusercontent.com/1070777/129612383-ae2d0190-b616-45f9-91de-b0cbbfedf79a.png" width="30%" height="30%">
 2. Configure your MQTT client connection
 <img src="https://user-images.githubusercontent.com/1070777/139558918-f38ff0f7-3753-40e2-a611-6b99b94498d5.png" width="45%" height="45%">
