@@ -41,5 +41,5 @@ I had to move out of Kyiv to Berlin because of Russian's war against Ukraine => 
 I can add new device support by buying new hardware for testing and allocating more time to programming during weekends.
 \
 \
-Note: I'm using my mother's PayPal because (a) I'd like to support my parents ;-) (b) I'm located in Ukraine and technically not able to get direct donations, and my mother is located Germany where PayPal payments work like a charm
+Note: I'm using my mother's PayPal (Tatjana H.) to support both project and my parents :-)
 
