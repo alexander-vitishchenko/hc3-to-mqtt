@@ -111,7 +111,7 @@ Light.bridgeRead = true
 Light.bridgeWrite = true
 
 function Light.isSupported(fibaroDevice)
-    if fibaroDeviceHasType(fibaroDevice, "com.fibaro.binarySwitch") and fibaroDeviceHasNoType(fibaroDevice, "com.fibaro.multilevelSwitch") and fibaroDeviceHasInterface(fibaroDevice, "light") then
+    if fibaroDeviceHasType(fibaroDevice, "com.fibaro.binarySwitch") and fibaroDeviceHasInterface(fibaroDevice, "light") then
         return true
     else 
         return false
