@@ -5,7 +5,7 @@ I had to move out of Kyiv to Berlin because of Russian's war against Ukraine => 
 
 ## How to use
 <ol>
-<li>Download the latest <a href="https://github.com/alexander-vitishchenko/hc3-to-mqtt/releases/latest/download/hc3_to_mqtt_bridge.fqa">QuickApp</a>, and then upload it your Fibaro Home Center 3 instance
+<li>Download the latest <a href="https://github.com/alexander-vitishchenko/hc3-to-mqtt/releases/latest/download/hc3_to_mqtt_bridge-1.0.176.fqa">QuickApp</a>, and then upload it your Fibaro Home Center 3 instance
 <br><br>
 <img src="https://user-images.githubusercontent.com/1070777/129612383-ae2d0190-b616-45f9-91de-b0cbbfedf79a.png" width="30%" height="30%">
 <br><br>
@@ -42,5 +42,6 @@ I can add new device support by buying new hardware for testing and allocating m
 \
 \
 Note: I'm using my mother's PayPal (Tatjana H.) to support both project and my parents :-)
+
 
 

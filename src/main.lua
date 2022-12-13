@@ -1,7 +1,7 @@
 function QuickApp:onInit()
     self:debug("-------------------")
     self:debug("HC3 <-> MQTT BRIDGE")
-    self:debug("Version: 1.0.175")
+    self:debug("Version: 1.0.176")
     self:debug("-------------------")
 
     self:turnOn()  
