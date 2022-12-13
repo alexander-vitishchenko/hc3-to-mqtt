@@ -43,3 +43,4 @@ I can add new device support by buying new hardware for testing and allocating m
 \
 Note: I'm using my mother's PayPal (Tatjana H.) to support both project and my parents :-)
 
+
