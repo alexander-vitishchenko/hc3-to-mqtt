@@ -1,7 +1,7 @@
 function QuickApp:onInit()
     self:debug("-------------------")
     self:debug("HC3 <-> MQTT BRIDGE")
-    self:debug("Version: 1.0.188")
+    self:debug("Version: 1.0.191")
     self:debug("-------------------")
 
     self:turnOn()  
@@ -277,6 +277,24 @@ function QuickApp:identifyDevices(fibaroDevices)
     end
 end
 
+function QuickApp:createLinkedSensorDevice(fromDevice, linkedProperty)
+    local linkedUnit
+    if (linkedProperty == "energy") then
+        linkedUnit = "kWh"
+    elseif (linkedProperty == "power") then
+        linkedUnit = "W"
+    end
+
+    local newFibaroLinkedSensor = self:createLinkedDevice(fromDevice, linkedProperty, linkedUnit)
+    newFibaroLinkedSensor.baseType = "com.fibaro.multilevelSensor"
+    newFibaroLinkedSensor.type = "com.fibaro." .. linkedProperty .. "Sensor"
+
+    local newLinkedSensor = identifyDevice(newFibaroLinkedSensor)
+    newLinkedSensor.fibaroDevice.linkedDevice = nil
+
+    return newLinkedSensor
+end
+
 function QuickApp:createLinkedDevice(fromDevice, linkedProperty, linkedUnit)
     local newFibaroLinkedDevice = {
         id = fromDevice.id .. "_" .. linkedProperty,
@@ -293,25 +311,6 @@ function QuickApp:createLinkedDevice(fromDevice, linkedProperty, linkedUnit)
     }
 
     return newFibaroLinkedDevice
-end
-
-function QuickApp:createLinkedSensorDevice(fromDevice, linkedProperty)
-    local linkedUnit
-    if (linkedProperty == "energy") then
-        linkedUnit = "kWh"
-        -- lastReset = "1970-01-03T00:00:00+00:00"
-    elseif (linkedProperty == "power") then
-        linkedUnit = "W"
-    end
-
-    local newFibaroLinkedSensor = self:createLinkedDevice(fromDevice, linkedProperty, linkedUnit)
-    newFibaroLinkedSensor.baseType = "com.fibaro.multilevelSensor"
-    newFibaroLinkedSensor.type = "com.fibaro." .. linkedProperty .. "Sensor"
-
-    local newLinkedSensor = identifyDevice(newFibaroLinkedSensor)
-    newLinkedSensor.fibaroDevice.linkedDevice = nil
-
-    return newLinkedSensor
 end
 
 function QuickApp:createLinkedKey(fromDevice, keyId, keyAttribute)

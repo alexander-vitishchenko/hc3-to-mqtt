@@ -107,6 +107,7 @@ function MqttConventionHomeAssistant:onDeviceCreated(device)
     ------------------------------------------
     local msg = {
         unique_id = tostring(device.id),
+        object_id = tostring(device.id),
         name = device.name .. " (" .. device.roomName .. ")",
 
         availability_mode = "all",
@@ -307,7 +308,8 @@ function MqttConventionHomeAssistant:enrichMessageWithParentDeviceInfo(device, m
             manufacturer = parentDevice.properties.zwaveCompany,
             model = parentDevice.properties.model, 
             -- zwave version is used instead of device software version
-            sw_version = parentDevice.properties.zwaveVersion
+            sw_version = parentDevice.properties.zwaveVersion,
+            configuration_url = "http://" .. localIpAddress .. "/app/settings/devices/list#device-" .. parentDevice.id
         }
     end
 end
@@ -606,3 +608,6 @@ mqttConventionMappings = {
     ["homie"] = MqttConventionHomie,
     ["debug"] = MqttConventionDebug
 } 
+
+
+localIpAddress = identifyLocalIpAddressForHc3()

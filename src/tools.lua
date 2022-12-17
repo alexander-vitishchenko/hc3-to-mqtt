@@ -299,3 +299,16 @@ function round(number, dec)
 
     return result
 end
+
+function identifyLocalIpAddressForHc3()
+    local networkInterfaces = api.get("/proxy?url=http://127.0.0.1:11112/api/settings/network")
+    for i, j in pairs(networkInterfaces.networkConfig) do
+        if (j.enabled) then
+            return j.ipConfig.ip
+        end
+    end
+
+    print("[WARNING] Cannot identify HC3 local ip address")
+    
+    return "unknown"
+end

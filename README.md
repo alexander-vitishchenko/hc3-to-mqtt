@@ -10,7 +10,7 @@ I had to move out of Kyiv to Berlin because of Russian's war against Ukraine => 
         <br><br>
     </li>
     <li>
-        Upload the latest <a href="https://github.com/alexander-vitishchenko/hc3-to-mqtt/releases/latest/download/hc3_to_mqtt_bridge-1.0.188.fqa">Fibaro QuickApp from GitHub</a> to your Fibaro Home Center 3 instance:
+        Upload the latest <a href="https://github.com/alexander-vitishchenko/hc3-to-mqtt/releases/latest/download/hc3_to_mqtt_bridge-1.0.191.fqa">Fibaro QuickApp from GitHub</a> to your Fibaro Home Center 3 instance:
         <ul>
             <li>Open the Configuration Interface</li>
             <li>Go to Settings > Devices</li>
@@ -52,3 +52,4 @@ Note: I'm using my mother's PayPal (Tatjana H.) to support both project and my p
    * Switches
    * Remote Controllers, where each key is binded to automation triggers visible in Home Assistant GUI
    * Thermostats (limited support for a few known vendors) 
+
