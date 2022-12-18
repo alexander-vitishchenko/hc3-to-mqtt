@@ -4,7 +4,7 @@
 I had to move out of Kyiv to Berlin because of Russian's war against Ukraine => feature requests take more time because need to accommodate at new place.
 
 ## ❗ For those who used QuickApp prior to 1.0.191 version
-Your Home Assistant dashboards and automations need to be reconfigured with new enity ids. This is a one-time effort that introduces a relatively \"small\" inconvenience for the greater good (a) introduce long-term stability so Home Assistant entity duplicates will not happen in certain scenarios (b) entity id namespaces are now syncronized between Fibaro and Home Assistant ecosystems
+Your Home Assistant dashboards and automations need to be reconfigured with new enity ids. This is a one-time effort that introduces a relatively \"small\" inconvenience for the greater good (a) introduce long-term stability so Home Assistant entity duplicates will not happen in certain scenarios (b) entity id namespaces are now syncronized between Fibaro and Home Assistant ecosystems.
 
 ## How to use
 <ol>
