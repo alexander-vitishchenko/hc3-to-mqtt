@@ -55,5 +55,24 @@ Note: I'm using my mother's PayPal (Tatjana H.) to support both project and my p
    * Switches
    * Remote Controllers, where each key is binded to automation triggers visible in Home Assistant GUI
    * Thermostats (limited support for a few known vendors) 
+<br>
+<details>
+  <summary><b>Want to propose a new device support? Click here</b></summary>
+  <br>
+  <ul>
+      <li>Open Fibaro Home Center 3 in a web-browser
+          <ul>
+            <li>Home Screen > Swagger (left-bottom panel) > devices > by id > export JSON file</li>
+            <li>Home Screen > Device viewer
+                <ul>
+                    <li>Default tab > make screenshot #1</li>
+                    <li>Advanced tab > make screenshot #2</li>
+                    <li>Preview tab > make screenshot #3</li>
+                </ul>
+            </li>
+          </ul>
+      </li>
+      <li>Submit JSON + screenshots, along with the device importance description <a href="https://github.com/alexander-vitishchenko/hc3-to-mqtt/issues/new/choose">here</a></li>
+  </ul>
 
-
+</details>
