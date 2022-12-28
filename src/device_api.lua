@@ -241,6 +241,7 @@ function MultilevelSensor:init(device)
         device.bridgeSubtype = "power"
     elseif (device.type == "com.fibaro.batteryLevelSensor") then 
         device.bridgeSubtype = "battery"
+        device.bridgeUnitOfMeasurement = "%"
     elseif (device.bridgeSubtype == RemoteController.bridgeSubtype) then 
         -- do nothing / the purpose for this logical condition is to make sure RemoteController doesn't fall into "Unknown multilevel sensor" category
     elseif (device.properties.unit == "V") then
