@@ -306,7 +306,7 @@ function MqttConventionHomeAssistant:enrichMessageWithParentDeviceInfo(device, m
             identifiers = "hc3-" .. parentDevice.id,
             name = parentDevice.name,
             manufacturer = parentDevice.properties.zwaveCompany,
-            model = parentDevice.properties.model, 
+            model = parentDevice.properties.model, --the model field is always empty in the json
             -- zwave version is used instead of device software version
             sw_version = parentDevice.properties.zwaveVersion,
             configuration_url = "http://" .. localIpAddress .. "/app/settings/devices/list#device-" .. parentDevice.id

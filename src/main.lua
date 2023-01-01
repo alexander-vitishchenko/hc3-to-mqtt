@@ -467,6 +467,11 @@ function QuickApp:dispatchFibaroEventToMqtt(event)
         -- This is a system level event, which is not bound to a particular device => ignore
         -- self:trace("Unsupported system event (feel free to reach out to QuickApp developer if you need it): " .. json.encode(event))
         return
+    elseif (event.type == "SceneStartedEvent" or event.type == "SceneFinishedEvent") then
+        --the Scene is not a device
+        --self:debug("sceneId or objectId" .. json.encode(deviceId))
+        --self:debug(json.encode(event))
+        return
     end 
 
     if (not event.type) then
@@ -490,6 +495,14 @@ function QuickApp:dispatchFibaroEventToMqtt(event)
         elseif (event.type == "DeviceRemovedEvent") then 
             self:dispatchDeviceRemovedEvent(device)
         elseif (event.type == "DeviceActionRanEvent") then
+
+        -- Just for Test - Just for Test - Just for Test
+        elseif (event.type == "SceneStartedEvent") then
+            self:debug("SceneStartedEvent, scene id:" .. event.data.id .. " SourceId: " .. event.sourceId)
+        elseif (event.type == "SceneFinishedEvent") then
+            self:debug("SceneFinishedEvent, Scene id:" .. event.data.id)
+        -- Just for Test - Just for Test - Just for Test
+
         else
             local eventType = tostring(event.type)
             if (eventType == "PluginChangedViewEvent") then
