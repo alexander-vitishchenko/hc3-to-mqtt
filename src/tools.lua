@@ -312,3 +312,16 @@ function identifyLocalIpAddressForHc3()
     
     return "unknown"
 end
+
+table.indexOf = function( t, object )
+\tlocal result
+
+    for i=1,#t do
+        if object == t[i] then
+            result = i
+            break
+        end
+    end
+
+\treturn result
+end
