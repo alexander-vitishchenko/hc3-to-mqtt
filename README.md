@@ -61,6 +61,9 @@ Note: I'm using my mother's PayPal (Tatjana H.) to support both project and my p
    * Remote Controllers, where each key is binded to automation triggers visible in Home Assistant GUI
    * Thermostats (limited support for a few known vendors) 
 <br>
+<b>Do you questions about using the QuickApp, or ideas to discuss? Use <a href="https://github.com/alexander-vitishchenko/hc3-to-mqtt/discussions">Discussions module</a></b>
+<br>
+<br>
 <details>
   <summary><b>Want to propose a new device support? Click here</b></summary>
   <br>
@@ -81,4 +84,3 @@ Note: I'm using my mother's PayPal (Tatjana H.) to support both project and my p
   </ul>
 
 </details>
-
