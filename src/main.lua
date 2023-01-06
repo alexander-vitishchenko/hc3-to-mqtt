@@ -1,15 +1,8 @@
--- *** FORMATTED LOG %d
--- *** CHECK AND FIX REMOTE CONTROLER (HEATIT)?  
--- *** FIX DEVICE ADDED DURING RUNTIME => REMOTE CONTROLLER => NO MQTT MESSAGE?
-
 function QuickApp:onInit()
     self:debug("")
-    self:debug("--------------------------------------------------")
-    self:debug("HC3 <-> MQTT BRIDGE")
-    self:debug("Version: 1.0.196")
+    self:debug("------- HC3 <-> MQTT BRIDGE")
+    self:debug("Version: 1.0.198")
     self:debug("(!) IMPORTANT NOTE FOR THOSE USERS WHO USED THE QUICKAPP PRIOR TO 1.0.191 VERSION: Your Home Assistant dashboards and automations need to be reconfigured with new enity ids. This is a one-time effort that introduces a relatively \"small\" inconvenience for the greater good (a) introduce long-term stability so Home Assistant entity duplicates will not happen in certain scenarios (b) entity id namespaces are now syncronized between Fibaro and Home Assistant ecosystems")
-    self:debug("--------------------------------------------------")
-    self:debug("")
 
     self:turnOn()  
 end
@@ -43,7 +36,16 @@ function QuickApp:establishMqttConnection()
     end
 
     local mqttConnectionParameters = self:getMqttConnectionParameters()
-    self:trace("MQTT Connection Parameters: " .. json.encode(mqttConnectionParameters))
+
+    -- Anonymize MQTT username and password before being printed to log
+    local status, anonymizedMqttConnectionParameters = pcall(clone, mqttConnectionParameters)
+    if (anonymizedMqttConnectionParameters.username) then
+        anonymizedMqttConnectionParameters.username = "anonymized-username"
+    end
+    if (anonymizedMqttConnectionParameters.password) then
+        anonymizedMqttConnectionParameters.password = "anonymized-password"
+    end
+    self:trace("MQTT Connection Parameters: " .. json.encode(anonymizedMqttConnectionParameters))
 
     local mqttClient = mqtt.Client.connect(
                                     self:getVariable("mqttUrl"),
@@ -118,7 +120,8 @@ end
 
 function QuickApp:onClosed(event)
     self:updateProperty("value", false)
-    self:debug("Disconnected from MQTT (Home Assistant)")
+    self:debug("")
+    self:debug("------- Disconnected from MQTT (Home Assistant)")
 end
 
 function QuickApp:onError(event)
@@ -145,10 +148,7 @@ end
 
 function QuickApp:onConnected(event) 
     self:debug("")
-    self:debug("--------------------------------------------------")
-    self:debug("Connected to MQTT (Home Assistant)")
-    self:debug("--------------------------------------------------")
-    self:debug("")
+    self:debug("------- Connected to MQTT (Home Assistant)")
 
     for _, mqttConvention in ipairs(self.mqttConventions) do
         mqttConvention.mqtt = self.mqtt
@@ -170,12 +170,10 @@ function QuickApp:discoverDevicesAndPublishToMqtt()
     local phaseEndTime = os.time()
     
     self:debug("")
-    self:debug("-------------------------------------------------")
-    self:debug("Device discovery has been complete in " .. (phaseEndTime - phaseStartTime) .. " second(s)")
+    self:debug("-------- Device discovery has been complete in " .. (phaseEndTime - phaseStartTime) .. " second(s)")
     self:debug("Total devices                        : " .. allFibaroDevicesAmount)
     self:debug("Filtered to                          : " .. filteredFibaroDevicesAmount)
     self:debug("Number of Home Assistant entities    : " .. identifiedHaEntitiesAmount .. " => number of supported Fibaro devices + automatically generated entities for power, energy and battery sensors (when found appropriate interfaces for a Fibaro device) + automatically generated  remote controllers, where cartesian join is applied for each key and press types")
-    self:debug("-------------------------------------------------")
     self:debug("")
     self:printDeviceHierarchy(deviceHierarchy)
 
@@ -183,13 +181,8 @@ function QuickApp:discoverDevicesAndPublishToMqtt()
     self:publishDeviceHierachyToMqtt(deviceHierarchy)
     phaseEndTime = os.time()    
 
-    -- *** rework log messages
     self:debug("")
-    self:debug("----------------------------------------------------------------------------")
-    self:debug("Device configuration and states have been distributed to MQTT in " .. (phaseEndTime - phaseStartTime) .. " second(s)")
-    self:debug("----------------------------------------------------------------------------")
-    self:debug("")
-
+    self:debug("------- Device configuration and states have been distributed to MQTT in " .. (phaseEndTime - phaseStartTime) .. " second(s)")
 
     local diff = os.time() - startTime
 
@@ -198,7 +191,6 @@ function QuickApp:discoverDevicesAndPublishToMqtt()
     self:updateView("identifiedHaEntities", "text", "Identified devices: " .. identifiedHaEntitiesAmount)
  
     self:updateView("bootTime" , "text", "Boot time: " .. diff .. "s")
-
 end
 
 function QuickApp:discoverDeviceHierarchy()
@@ -426,20 +418,20 @@ local lastRefresh = 0
 local http = net.HTTPClient()
 
 function QuickApp:scheduleHc3EventsFetcher()
+    self.errorCacheMap = { }
+    self.errorCacheTimeout = 60
+    self.gotError = false
+
     self:readHc3EventAndScheduleFetcher()
 
     self:debug("")
-    self:debug("--------------------------------------------------")
-    self:debug("Connected to Fibaro Home Center 3")
-    self:debug("--------------------------------------------------")
-    self:debug("")
+    self:debug("------- Connected to Fibaro Home Center 3")
 end
 
 function QuickApp:readHc3EventAndScheduleFetcher()
     -- This a reliable and high-performance method to get events from Fibaro HC3, by using non-blocking HTTP calls
 
     local requestUrl = "http://127.0.0.1:11111/api/refreshStates?last=" .. lastRefresh
-    --self:debug("Fetch events from " .. requestUrl .. " | " .. tostring(self.hc3ConnectionEnabled))
 
     local stat, res = http:request(
         requestUrl,
@@ -463,9 +455,10 @@ function QuickApp:readHc3EventAndScheduleFetcher()
     if (self.hc3ConnectionEnabled) then
         local delay
         if self.gotError then
-            self:warning("Got error - retry in 1s")
+            -- avoid hitting errors with a "speed of light"
             delay = 1000
         else
+            -- provide fast events distribution to Home Assistant when no errors present
             delay = 100
         end
 
@@ -473,19 +466,38 @@ function QuickApp:readHc3EventAndScheduleFetcher()
             self:readHc3EventAndScheduleFetcher()
         end)
     else
-        self:debug("Disconnected from Fibaro HC3")
+        self:debug("")
+        self:debug("------- Disconnected from Fibaro HC3")
     end
 
 end
 
 function QuickApp:processFibaroHc3Events(data)
+    self.gotError = false
+
     if not self.hc3ConnectionEnabled then
         return
     end
 
-    self.gotError = false
+    -- Simulate repeatable broken status
+    --data.status = "STARTING_SERVICES"
+
     if (data.status ~= 200 and data.status ~= "IDLE") then
-        self:warning("Unexpected response status " .. tostring(data.status))
+        self.gotError = true
+        if (not data.status) then
+            data.status = "<unknown>"
+        end
+
+        -- filter out repeatable errors
+        local lastErrorReceivedTimestamp = self.errorCacheMap[data.status]
+        local currentTimestamp = os.time()
+        if ((not lastErrorReceivedTimestamp) or (lastErrorReceivedTimestamp < (currentTimestamp - self.errorCacheTimeout))) then
+            self:warning("Unexpected response status \"" .. tostring(data.status) .. "\", muting any repeated warnings for " .. self.errorCacheTimeout .. " seconds")
+            self:trace("Full response body: " .. json.encode(data))
+
+            -- mute repeatable warnings temporary (avoid spamming to logs)
+            self.errorCacheMap[data.status] = currentTimestamp
+        end
     end
 
     local events = data.events
@@ -538,9 +550,6 @@ function QuickApp:dispatchFibaroEventToMqtt(event)
     end
 
     local deviceNode = getDeviceNodeById(fibaroDeviceId)
-
-    -- *** REMOVE 
-    --print("EVENT : " .. json.encode(event))
 
     if (deviceNode) then
         -- process events for devices that are required to be known to the QuickApp
@@ -674,9 +683,58 @@ function QuickApp:dispatchDeviceRemovedEvent(deviceNode)
     self:debug("Fibaro device removed " .. deviceNode.id)
 end
 
+function QuickApp:logDeviceNode(id)
+    local deviceNode = getDeviceNodeById(id)
+    print("------- DEVICE NODE INFO FOR #" .. id)
+    print("Matched filter criteria: " ..tostring(deviceNode.included))
+    print("Fibaro device: " ..json.encode(deviceNode.fibaroDevice))
+
+    local haDeviceStr
+    if deviceNode.identifiedHaDevice then
+        haDeviceStr = json.encode(deviceNode.identifiedHaDevice)
+    else 
+        haDeviceStr = "not found => not supported by the Quick App"
+    end
+    print("Home Assistant physical device: " .. haDeviceStr)
+
+    local haEntityStr
+    if deviceNode.identifiedHaEntity then
+        local haEntity = deviceNode.identifiedHaEntity
+        local haEntityCopy = { 
+            id = haEntity.id,
+            name = haEntity.name,
+            roomName = haEntity.roomName,
+            type = haEntity.type,
+            subtype = haEntity.subtype,
+            icon = haEntity.icon
+        } 
+        if (haEntityCopy.linkedEntity) then
+            haEntityCopy.linkedEntity = getDeviceDescriptionById(haEntityCopy.linkedEntity.id)
+        end
+
+        if (haEntityCopy.type == "climate") then
+            local sensor =  haEntity:getTemperatureSensor()
+            if sensor then
+                haEntityCopy.temperatureSensor = getDeviceDescriptionById(haEntity:getTemperatureSensor().id)
+            else
+                haEntityCopy.temperatureSensor = "no temperature sensor attached"
+            end
+        end
+
+        haEntityStr = json.encode(haEntityCopy)
+    else 
+        haEntityStr = "not found => not supported by the Quick App"
+    end
+    print("Home Assistant logical entity: " .. haEntityStr)
+
+    print("Children count : " .. tostring(#deviceNode.childNodeList))
+end
+
 unsupportedFibaroEventTypes = {
     DeviceActionRanEvent = true,
     DeviceChangedRoomEvent = true,
     QuickAppFilesChangedEvent = true, 
     PluginChangedViewEvent = true
 }
+
+-- *** FORMATTED LOG %d
