@@ -267,6 +267,10 @@ MultilevelSensor.supportsWrite = false
 MultilevelSensor.icon = "&#128065;&#65039;" -- 👁️
 
 function MultilevelSensor.isSupported(fibaroDevice)
+    if fibaroDevice.baseType == "com.fibaro.electricMeter" then
+        return true
+    end
+
     if (string.find(fibaroDevice.baseType, "Sensor") or string.find(fibaroDevice.baseType, "sensor") or string.find(fibaroDevice.baseType, "Detector") or string.find(fibaroDevice.baseType, "detector")) then
         if fibaroDeviceHasType(fibaroDevice, "com.fibaro.multilevelSensor") then
             return true 
@@ -290,10 +294,10 @@ function MultilevelSensor:init(fibaroDevice)
         self.subtype = "illuminance"
     elseif self:fibaroDeviceHasType("com.fibaro.humiditySensor") then 
         self.subtype = "humidity"
-    elseif self:fibaroDeviceHasType("com.fibaro.energySensor") then 
+    elseif self:fibaroDeviceHasType("com.fibaro.energySensor")then 
         self.subtype = "energy"
         self.icon = "&#9889;" -- ⚡
-    elseif self:fibaroDeviceHasType("com.fibaro.powerSensor") then 
+    elseif self:fibaroDeviceHasType("com.fibaro.powerMeter") then 
         self.subtype = "power"
         self.icon = "&#9889;" -- ⚡
     elseif self:fibaroDeviceHasType("com.fibaro.batteryLevelSensor") then 
@@ -340,13 +344,13 @@ function Cover:init(fibaroDevice)
     self.customPropertySetters = { }
     self.customPropertySetters["state"] = function (propertyName, value) 
         if (value == "open") then
-            fibaro.call(self.id, "setValue", 99)
+            fibaro.call(self.id, "setValue", 100)
         elseif (value == "close") then
             fibaro.call(self.id, "setValue", 0)
         elseif (value == "stop") then
             fibaro.call(self.id, "stop")
         else
-            print("Unsupported state")
+            print("Unsupported command")
         end
     end
 end
@@ -840,10 +844,13 @@ end
 -- ****** FIX DEFECT => TOPIC FOR LINKED DEVICE
 function createLinkedMultilevelSensorDevice(fromDevice, linkedProperty)
     local linkedUnit
+    local sensorTypeSuffix = "Sensor"
     if (linkedProperty == "energy") then
         linkedUnit = "kWh"
+        sensorTypeSuffix = "Meter"
     elseif (linkedProperty == "power") then
         linkedUnit = "W"
+        sensorTypeSuffix = "Meter"
     elseif (linkedProperty == "batteryLevel") then
         linkedUnit = "%"
     end
@@ -851,7 +858,7 @@ function createLinkedMultilevelSensorDevice(fromDevice, linkedProperty)
     local newLinkedFibaroSensor = createLinkedFibaroDevice(fromDevice, linkedProperty, linkedUnit)
 
     newLinkedFibaroSensor.baseType = "com.fibaro.multilevelSensor"
-    newLinkedFibaroSensor.type = "com.fibaro." .. linkedProperty .. "Sensor"
+    newLinkedFibaroSensor.type = "com.fibaro." .. linkedProperty .. sensorTypeSuffix
 
     return newLinkedFibaroSensor
 end

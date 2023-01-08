@@ -168,6 +168,9 @@ function MqttConventionHomeAssistant:onDeviceNodeCreated(deviceNode)
             msg.brightness_state_topic = self:getterTopic(haEntity, "value")
             msg.brightness_value_template = "{{ value_json.value }}"
         elseif (haEntity.type == "cover") then
+            -- Home Assistant to interpret state from "position_topic"
+            msg.state_topic = nil
+
             msg.position_topic = self:getterTopic(haEntity, "value")
         elseif (haEntity.type == "sensor") then
             msg.state_topic = self:getterTopic(haEntity, "value")
@@ -195,17 +198,20 @@ function MqttConventionHomeAssistant:onDeviceNodeCreated(deviceNode)
             msg.position_template = "{{ value_json.value }}"
             -- value_template is deprecated since Home Assistant Core 2021.6.
             msg.value_template = nil
-            msg.position_open = 99
+            msg.position_open = 100
             msg.position_closed = 0
 
             msg.payload_open = "open"
             msg.payload_close = "close"
             msg.payload_stop = "stop"
 
-            msg.state_open = "open"
+            --[[
             msg.state_closed = "closed"
-            msg.state_opening = "opening"
             msg.state_closing = "closing"
+            msg.state_open = "open"
+            msg.state_opening = "opening"
+            ]]--
+
             msg.state_topic = self:setterTopic(haEntity, "state")
         end
     end
@@ -241,8 +247,9 @@ function MqttConventionHomeAssistant:onDeviceNodeCreated(deviceNode)
     end
 
     ------------------------------------------ 
-    ---- THERMOSTAT SPECIFIC
+    ---- THERMOSTAT SPECIFIC (HEATING)
     ------------------------------------------
+    -- *** ADD SUPPORT FOR COOLING MODE IN THE FUTURE
     if (haEntity.type == "climate") then
         -- **** refactor
         msg.modes = deviceNode.identifiedHaEntity.properties.supportedThermostatModes
@@ -255,6 +262,7 @@ function MqttConventionHomeAssistant:onDeviceNodeCreated(deviceNode)
         msg.mode_state_topic = self:getterTopic(haEntity, "thermostatMode")
         msg.mode_command_topic = self:setterTopic(haEntity, "thermostatMode")
 
+        -- *** 
         -- MIX/MAX TEMPERATURE
         msg.min_temp = deviceNode.fibaroDevice.properties.heatingThermostatSetpointCapabilitiesMin
         msg.max_temp = deviceNode.fibaroDevice.properties.heatingThermostatSetpointCapabilitiesMax
@@ -347,6 +355,7 @@ function MqttConventionHomeAssistant:onPropertyUpdated(deviceNode, event)
     if haEntity.type == "cover" then 
         if propertyName == "value" then
             -- Fibaro doesn't use "state" attribute for covers, so we'll trigger it on behalf of Fibaro based on "value" attribute
+            --[[
             local state
             if value < 20 then
                 state = "closed"
@@ -366,13 +375,12 @@ function MqttConventionHomeAssistant:onPropertyUpdated(deviceNode, event)
                     value = state
                 }
                 formattedState = json.encode(payload)
-                --formattedState = state
-                -- *** DUPLICATE?
                 self.mqtt:publish(self:getterTopic(haEntity, "state"), formattedState, {retain = true})
             end
+            ]]--
         elseif propertyName == "state" then
             if (value == "unknown") then
-                -- drop event as Fibaro has "Uknnown" value constantly assigned to the "state" attribute 
+                -- drop event as Fibaro has "Uknnown" value assigned to the "state" attribute 
                 return
             end
         end

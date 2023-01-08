@@ -1,7 +1,22 @@
+--[[ RELEASE NOTES FOR 1.0.201
+Summary: Cummulative update for 1.0.194-1.0.201, see description for details
+
+Description:
+- Introduced a hierarchical device model instead of flat list, aiming to simplify new features development and enable better QuickApp maintainability
+- Added graphical items for better device type visualisation
+- Introduced logical vs physycal device seggregation
+- Added broader thermostat devices support
+- Added broader support for power and energy meters
+- Added better support for Covers/Roller Shutters
+- More informative logging; and muted some of the repeatative warnings
+- Anonymized MQTT username/password for logging
+- other "quality of life improvements"
+]]--
+
 function QuickApp:onInit()
     self:debug("")
     self:debug("------- HC3 <-> MQTT BRIDGE")
-    self:debug("Version: 1.0.198")
+    self:debug("Version: 1.0.201")
     self:debug("(!) IMPORTANT NOTE FOR THOSE USERS WHO USED THE QUICKAPP PRIOR TO 1.0.191 VERSION: Your Home Assistant dashboards and automations need to be reconfigured with new enity ids. This is a one-time effort that introduces a relatively \"small\" inconvenience for the greater good (a) introduce long-term stability so Home Assistant entity duplicates will not happen in certain scenarios (b) entity id namespaces are now syncronized between Fibaro and Home Assistant ecosystems")
 
     self:turnOn()  
