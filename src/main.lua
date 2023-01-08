@@ -1,25 +1,18 @@
---[[ RELEASE NOTES FOR 1.0.201
-Summary: Cummulative update for 1.0.194-1.0.201, see description for details
+--[[ RELEASE NOTES FOR 1.0.202
+Summary: Improved speed and stability of HC3 => Home Assistant event transmition
 
 Description:
-- Introduced a hierarchical device model instead of flat list, aiming to simplify new features development and enable better QuickApp maintainability
-- Added graphical items for better device type visualisation
-- Introduced logical vs physycal device seggregation
-- Added broader thermostat devices support
-- Added broader support for power and energy meters
-- Added better support for Covers/Roller Shutters
-- More informative logging; and muted some of the repeatative warnings
-- Anonymized MQTT username/password for logging
-- other "quality of life improvements"
+- improved the speed of HC3 => MQTT event, with an average latency around 50ms
+- multithread safity for HC3 event poller 
 ]]--
 
 function QuickApp:onInit()
     self:debug("")
     self:debug("------- HC3 <-> MQTT BRIDGE")
-    self:debug("Version: 1.0.201")
+    self:debug("Version: 1.0.202")
     self:debug("(!) IMPORTANT NOTE FOR THOSE USERS WHO USED THE QUICKAPP PRIOR TO 1.0.191 VERSION: Your Home Assistant dashboards and automations need to be reconfigured with new enity ids. This is a one-time effort that introduces a relatively \"small\" inconvenience for the greater good (a) introduce long-term stability so Home Assistant entity duplicates will not happen in certain scenarios (b) entity id namespaces are now syncronized between Fibaro and Home Assistant ecosystems")
 
-    self:turnOn()  
+    self:turnOn()
 end
 
 function QuickApp:publish(topic, payload)
@@ -435,16 +428,41 @@ local http = net.HTTPClient()
 function QuickApp:scheduleHc3EventsFetcher()
     self.errorCacheMap = { }
     self.errorCacheTimeout = 60
-    self.gotError = false
+    self.gotWarning = false
+    
+    self.eventProcessorIsActive = false
 
-    self:readHc3EventAndScheduleFetcher()
+    self:scheduleAnotherPollingForHc3()
 
     self:debug("")
     self:debug("------- Connected to Fibaro Home Center 3")
 end
 
+function QuickApp:scheduleAnotherPollingForHc3()
+    if (self.hc3ConnectionEnabled) then
+        local delay
+        if self.gotWarning then
+            -- avoid hitting errors with a "speed of light"
+            delay = 1000
+        else
+            -- provide fast events distribution to Home Assistant when no errors present
+            delay = 50
+        end
+
+        fibaro.setTimeout(delay, function()
+            self:readHc3EventAndScheduleFetcher()
+        end)
+    else
+        self:debug("")
+        self:debug("------- Disconnected from Fibaro HC3")
+    end
+end
+
 function QuickApp:readHc3EventAndScheduleFetcher()
     -- This a reliable and high-performance method to get events from Fibaro HC3, by using non-blocking HTTP calls
+
+    -- no 2+ jobs to be executed twice
+    self.eventProcessorIsActive = true
 
     local requestUrl = "http://127.0.0.1:11111/api/refreshStates?last=" .. lastRefresh
 
@@ -456,6 +474,7 @@ function QuickApp:readHc3EventAndScheduleFetcher()
             local data
             if (res and not isEmptyString(res.data)) then
                 self:processFibaroHc3Events(json.decode(res.data))
+                self:scheduleAnotherPollingForHc3()
             else
                 self:error("Error while fetching events from Fibaro HC3. Response status code is " .. res.status .. ". HTTP response body is '" .. json.encode(res) .. "'")
                 self:turnOff()
@@ -466,39 +485,20 @@ function QuickApp:readHc3EventAndScheduleFetcher()
             self:turnOff()
         end
     })
-
-    if (self.hc3ConnectionEnabled) then
-        local delay
-        if self.gotError then
-            -- avoid hitting errors with a "speed of light"
-            delay = 1000
-        else
-            -- provide fast events distribution to Home Assistant when no errors present
-            delay = 100
-        end
-
-        fibaro.setTimeout(delay, function()
-            self:readHc3EventAndScheduleFetcher()
-        end)
-    else
-        self:debug("")
-        self:debug("------- Disconnected from Fibaro HC3")
-    end
-
 end
 
 function QuickApp:processFibaroHc3Events(data)
-    self.gotError = false
+    self.gotWarning = false
 
-    if not self.hc3ConnectionEnabled then
-        return
-    end
+    --if not self.hc3ConnectionEnabled then
+    --    return
+    --end
 
     -- Simulate repeatable broken status
     --data.status = "STARTING_SERVICES"
 
     if (data.status ~= 200 and data.status ~= "IDLE") then
-        self.gotError = true
+        self.gotWarning = true
         if (not data.status) then
             data.status = "<unknown>"
         end
