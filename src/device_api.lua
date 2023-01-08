@@ -1,39 +1,61 @@
 ----------------------------------- 
+-- CACHE FOR QUICKAPP PERFORMANCE BOOST 
+-----------------------------------
+-- **** ADD VIRTUAL ROOT NODE AT LEVEL 0
+deviceHierarchy = { }
+deviceNodeById = { }
+deviceFilter = { }
+
+allFibaroDevicesAmount = 0
+filteredFibaroDevicesAmount = 0
+identifiedHaEntitiesAmount = 0
+
+----------------------------------- 
 -- PROTOTYPE OBJECT 
 -----------------------------------
-PrototypeDevice = {
-    bridgeType = "'bridgeType' needs to be set",
-    bridgeSubtype = "default",
-    bridgeBinary = "'bridgeBinary' needs to be set",
-    bridgeBinaryProperty = "value",
-    bridgeMultilevel = "'bridgeMultilevel' needs to be set",
-    bridgeRead = "'bridgeRead' needs to be set",
-    bridgeWrite = "'bridgeWrite' needs to be set",
-    bridgeModes = "'bridgeWrite' needs to be set to an array of modes, e.g. 'heat', 'cool'",
-    customPropertySetters = nil -- could be optionally set by child class
+PrototypeEntity = {
+    -- mandatory
+    type = "'type' needs to be initialized",
+    supportsBinary = "'supportsBinary' needs to be initialized",
+    binaryProperty = "value",
+    supportsMultilevel = "'supportsMultilevel' needs to be initialized",
+    supportsRead = "'supportsRead' needs to be initialized",
+    supportsWrite = "'supportsWrite' needs to be initialized",
+
+    -- optional
+    subtype = "default",
+    modes = "'modes' needs to be initialized to an array of modes, e.g. 'heat', 'cool'",
+    icon = "&#128230;",
+    properties = { },
+    customPropertySetters = nil -- could be optionally set by a child class
 } 
 
-function PrototypeDevice:new(fibaroDevice)
-    -- clone self, and copy fibaroDevice
-    local status, device = pcall(clone, self)
-    shallowCopyTo(fibaroDevice, device)
+function PrototypeEntity:new(deviceNode)
+    local status, haEntity = pcall(clone, self)
 
-    device.fibaroDevice = fibaroDevice
-    
-    if (not device.roomName) then
-        device.roomName = tostring(fibaro.getRoomNameByDeviceID(device.id))
+    local fibaroDevice = deviceNode.fibaroDevice
+    haEntity.sourceDeviceNode = deviceNode
+
+    haEntity.id = fibaroDevice.id
+    haEntity.name = fibaroDevice.name
+    haEntity.roomName = fibaroDevice.roomName
+
+    local linkedFibaroDevice = fibaroDevice.linkedDevice
+    if linkedFibaroDevice then
+        haEntity.linkedEntity = deviceNodeById[linkedFibaroDevice.id].identifiedHaEntity
+        haEntity.linkedProperty = fibaroDevice.linkedProperty
     end
 
-    self:init(device)
+    haEntity:init(fibaroDevice)
 
-    return device
+    return haEntity
 end
 
-function PrototypeDevice:init(device)
+function PrototypeEntity:init(fibaroDevice)
     -- "init" function could be optionally overriden by subclasses implementation
 end 
 
-function PrototypeDevice:setProperty(propertyName, value)
+function PrototypeEntity:setProperty(propertyName, value)
     if isEmptyString(value) then
         return
     end
@@ -56,6 +78,7 @@ function PrototypeDevice:setProperty(propertyName, value)
                 print("Unexpected value: " .. json.encode(event))
             end
         else
+            -- *** rename to firstCharacter
             local firstPart = string.upper(string.sub(propertyName, 1, 1))
             local secondPart = string.sub(propertyName, 2, string.len(propertyName))
 
@@ -76,20 +99,33 @@ function PrototypeDevice:setProperty(propertyName, value)
     end
 end
 
-function PrototypeDevice.isSupported(fibaroDevice)
-    print("'isSupported' function is mandatory for implementation")
+function PrototypeEntity:fibaroDeviceHasType(type)
+    return fibaroDeviceHasType(self.sourceDeviceNode.fibaroDevice, type)
+end
+
+function PrototypeEntity:fibaroDeviceHasNoType(type)
+    return not fibaroDeviceHasType(self.sourceDeviceNode.fibaroDevice, type)
+end
+
+function PrototypeEntity:fibaroDeviceHasInterface(interface)
+    return table_contains_value(self.sourceDeviceNode.fibaroDevice, interface)
+end
+
+function PrototypeEntity:fibaroDeviceHasNoInterface(interface)
+    return not fibaroDeviceHasInterface(self.sourceDeviceNode.fibaroDevice, interface)
 end
 
 -----------------------------------
 -- BINARY SWITCH
 -----------------------------------
-Switch = inheritFrom(PrototypeDevice)
-Switch.bridgeType = "switch"
-Switch.bridgeSubtype = "binary"
-Switch.bridgeBinary = true
-Switch.bridgeMultilevel = false
-Switch.bridgeRead = true
-Switch.bridgeWrite = true 
+Switch = inheritFrom(PrototypeEntity)
+Switch.type = "switch"
+Switch.subtype = "binary"
+Switch.supportsBinary = true
+Switch.supportsMultilevel = false
+Switch.supportsRead = true
+Switch.supportsWrite = true
+Switch.icon = "&#128268;" -- 🔌
 
 function Switch.isSupported(fibaroDevice)
     if fibaroDeviceHasType(fibaroDevice, "com.fibaro.binarySwitch") and fibaroDeviceHasNoInterface(fibaroDevice, "light") then
@@ -102,13 +138,14 @@ end
 -----------------------------------
 -- BINARY LIGHT
 -----------------------------------
-Light = inheritFrom(PrototypeDevice)
-Light.bridgeType = "light"
-Light.bridgeSubtype = "binary"
-Light.bridgeBinary = true
-Light.bridgeMultilevel = false
-Light.bridgeRead = true
-Light.bridgeWrite = true
+Light = inheritFrom(PrototypeEntity)
+Light.type = "light"
+Light.subtype = "binary"
+Light.supportsBinary = true
+Light.supportsMultilevel = false
+Light.supportsRead = true
+Light.supportsWrite = true
+Light.icon = "&#128161;" -- 💡
 
 function Light.isSupported(fibaroDevice)
     if fibaroDeviceHasType(fibaroDevice, "com.fibaro.binarySwitch") and fibaroDeviceHasInterface(fibaroDevice, "light") then
@@ -121,13 +158,14 @@ end
 -----------------------------------
 -- MULTILEVEL LIGHT (DIMMERS)
 -----------------------------------
-Dimmer = inheritFrom(PrototypeDevice)
-Dimmer.bridgeType = "light"
-Dimmer.bridgeSubtype = "dimmer"
-Dimmer.bridgeBinary = true
-Dimmer.bridgeMultilevel = true
-Dimmer.bridgeRead = true
-Dimmer.bridgeWrite = true
+Dimmer = inheritFrom(PrototypeEntity)
+Dimmer.type = "light"
+Dimmer.subtype = "dimmer"
+Dimmer.supportsBinary = true
+Dimmer.supportsMultilevel = true
+Dimmer.supportsRead = true
+Dimmer.supportsWrite = true
+Dimmer.icon = "&#128161;"
 
 function Dimmer.isSupported(fibaroDevice)
     if fibaroDeviceHasType(fibaroDevice, "com.fibaro.multilevelSwitch") and fibaroDeviceHasInterface(fibaroDevice, "light") then
@@ -140,13 +178,14 @@ end
 -----------------------------------
 -- MULTILEVEL LIGHT (RGBW)
 -----------------------------------
-Rgbw = inheritFrom(PrototypeDevice)
-Rgbw.bridgeType = "light"
-Rgbw.bridgeSubtype = "rgbw" 
-Rgbw.bridgeBinary = true
-Rgbw.bridgeMultilevel = true
-Rgbw.bridgeRead = true
-Rgbw.bridgeWrite = true
+Rgbw = inheritFrom(PrototypeEntity)
+Rgbw.type = "light"
+Rgbw.subtype = "rgbw" 
+Rgbw.supportsBinary = true
+Rgbw.supportsMultilevel = true
+Rgbw.supportsRead = true
+Rgbw.supportsWrite = true
+Rgbw.icon = "&#127752;" -- 🌈
 
 function Rgbw.isSupported(fibaroDevice)
     if fibaroDeviceHasType(fibaroDevice, "com.fibaro.colorController") and fibaroDeviceHasInterface(fibaroDevice, "light") then
@@ -159,15 +198,16 @@ end
 -----------------------------------
 -- BINARY SENSOR (DOOR, MOTION, WATER LEAK, FIRE, SMORE SENSORSMULTILEVEL FOR TEMPERATURE, ETC)
 -----------------------------------
-BinarySensor = inheritFrom(PrototypeDevice)
-BinarySensor.bridgeType = "binary_sensor"
-BinarySensor.bridgeBinary = true
-BinarySensor.bridgeMultilevel = false
-BinarySensor.bridgeRead = true 
-BinarySensor.bridgeWrite = false
+BinarySensor = inheritFrom(PrototypeEntity)
+BinarySensor.type = "binary_sensor"
+BinarySensor.supportsBinary = true
+BinarySensor.supportsMultilevel = false
+BinarySensor.supportsRead = true 
+BinarySensor.supportsWrite = false
+BinarySensor.icon = "&#128065;&#65039;" -- 👁️
 
 function BinarySensor.isSupported(fibaroDevice)
-    if (string.find(fibaroDevice.baseType, "Sensor")) or (string.find(fibaroDevice.baseType, "sensor")) then
+    if (string.find(fibaroDevice.baseType, "Sensor") or string.find(fibaroDevice.baseType, "sensor") or string.find(fibaroDevice.baseType, "Detector") or string.find(fibaroDevice.baseType, "detector")) then
         --if (fibaroDevice.baseType ~= "com.fibaro.multilevelSensor") and (fibaroDevice.type ~= "com.fibaro.multilevelSensor") then
         if fibaroDeviceHasNoType(fibaroDevice, "com.fibaro.multilevelSensor") then
             return true 
@@ -177,44 +217,58 @@ function BinarySensor.isSupported(fibaroDevice)
     return false
 end
 
-function BinarySensor:init(device)
-    -- set unit of measurement
-    device.bridgeUnitOfMeasurement = device.properties.unit
-
+function BinarySensor:init(fibaroDevice)
     -- ToDo: refactor with mappings
-    if (device.type == "com.fibaro.motionSensor") or (device.baseType == "com.fibaro.motionSensor") then
-        device.bridgeSubtype = "motion"
-    elseif (device.baseType == "com.fibaro.floodSensor") then
-        device.bridgeSubtype = "moisture" 
-    elseif (device.baseType == "com.fibaro.doorWindowSensor") then
-        if (device.type == "com.fibaro.doorSensor") then
-            device.bridgeSubtype = "door"
+    if self:fibaroDeviceHasType("com.fibaro.motionSensor") then
+        self.subtype = "motion"
+    elseif self:fibaroDeviceHasType("com.fibaro.floodSensor") then
+        self.subtype = "moisture" 
+        self.icon = "&#128167;" -- 💧
+    elseif self:fibaroDeviceHasType("com.fibaro.doorWindowSensor") then
+        if self:fibaroDeviceHasType("com.fibaro.doorSensor") then
+            self.subtype = "door"
+            self.icon = "&#128682;" -- 🚪
+        elseif self:fibaroDeviceHasType("com.fibaro.windowSensor") then
+            self.subtype = "window"
+            self.icon = "&#129003;" -- 🟫
         else
-            print("[BinarySensor.init] Uknown doow/window sensor " .. device.id .. " " .. device.name)
+            print("[BinarySensor.init] Uknown doow/window sensor " .. self.id .. " " .. self.name)
         end
-    elseif (device.baseType == "com.fibaro.lifeDangerSensor") then
-        device.bridgeSubtype = "safety"
-    elseif (device.baseType == "com.fibaro.smokeSensor") or (device.type == "com.fibaro.smokeSensor") then
-        device.bridgeSubtype = "smoke"
+    elseif self:fibaroDeviceHasType("com.fibaro.fireDetector") or self:fibaroDeviceHasType("com.fibaro.fireSensor") then
+        self.subtype = "heat"
+        self.icon = "&#128293;" -- 🔥
+    elseif self:fibaroDeviceHasType("com.fibaro.coDetector") then
+        self.subtype = "carbon_monoxide"
+        self.icon = "&#128168;" -- 💨
+    elseif self:fibaroDeviceHasType("com.fibaro.smokeSensor") then
+        self.subtype = "smoke"
+        self.icon = "&#128684;" -- 🚬
+    elseif self:fibaroDeviceHasType("com.fibaro.gasDetector") then
+        self.subtype = "gas" 
+        self.icon = "&#128168;" -- 💨
+    elseif self:fibaroDeviceHasType("com.fibaro.lifeDangerSensor") then
+        self.subtype = "safety"
     else
-        print("[BinarySensor.init] Unknown binary sensor")
+        self.subtype = nil
+        --print("[BinarySensor.init] No sensor specialization for #" .. tostring(self.id) .. " \"" .. tostring(self.name) .. "\" that has type " .. fibaroDevice.baseType .. "-" .. fibaroDevice.type .. ", thus using default sensor class")
     end
 end
 
 -----------------------------------
 -- MULTILEVEL SENSOR (TEMPERATURE, HUMIDITY, VOLTAGE, ETC) 
 -----------------------------------
-MultilevelSensor = inheritFrom(PrototypeDevice)
-MultilevelSensor.bridgeType = "sensor"
-MultilevelSensor.bridgeBinary = false
-MultilevelSensor.bridgeMultilevel = true
+MultilevelSensor = inheritFrom(PrototypeEntity)
+MultilevelSensor.type = "sensor"
+MultilevelSensor.supportsBinary = false
+MultilevelSensor.supportsMultilevel = true
 MultilevelSensor.bridgeUnitOfMeasurement = "'unit of measurement' needs to be initialized"
-MultilevelSensor.bridgeRead = true
-MultilevelSensor.bridgeWrite = false
+MultilevelSensor.supportsRead = true
+MultilevelSensor.supportsWrite = false
+MultilevelSensor.icon = "&#128065;&#65039;" -- 👁️
 
 function MultilevelSensor.isSupported(fibaroDevice)
-    if (string.find(fibaroDevice.baseType, "Sensor")) or (string.find(fibaroDevice.baseType, "sensor")) then
-        if (fibaroDevice.baseType == "com.fibaro.multilevelSensor") or (fibaroDevice.type == "com.fibaro.multilevelSensor") then
+    if (string.find(fibaroDevice.baseType, "Sensor") or string.find(fibaroDevice.baseType, "sensor") or string.find(fibaroDevice.baseType, "Detector") or string.find(fibaroDevice.baseType, "detector")) then
+        if fibaroDeviceHasType(fibaroDevice, "com.fibaro.multilevelSensor") then
             return true 
         end
     end
@@ -222,48 +276,57 @@ function MultilevelSensor.isSupported(fibaroDevice)
     return false
 end
 
-function MultilevelSensor:init(device)
+function MultilevelSensor:init(fibaroDevice)
     -- initialize unit of measurement
-    device.bridgeUnitOfMeasurement = device.properties.unit
+    self.bridgeUnitOfMeasurement = fibaroDevice.properties.unit
 
     -- initialize subtype 
-    -- ToDo *** refactor with mappings
-    if (device.type == "com.fibaro.temperatureSensor") then
-        device.bridgeSubtype = "temperature"
-        device.bridgeUnitOfMeasurement = "°" .. device.properties.unit
-    elseif (device.type == "com.fibaro.lightSensor") then
-        device.bridgeSubtype = "illuminance"
-    elseif (device.type == "com.fibaro.humiditySensor") then 
-        device.bridgeSubtype = "humidity"
-    elseif (device.type == "com.fibaro.energySensor") then 
-        device.bridgeSubtype = "energy"
-    elseif (device.type == "com.fibaro.powerSensor") then 
-        device.bridgeSubtype = "power"
-    elseif (device.type == "com.fibaro.batteryLevelSensor") then 
-        device.bridgeSubtype = "battery"
-        device.bridgeUnitOfMeasurement = "%"
-    elseif (device.bridgeSubtype == RemoteController.bridgeSubtype) then 
+    -- ToDo *** refactor with mappings?
+    if self:fibaroDeviceHasType("com.fibaro.temperatureSensor") then
+        self.subtype = "temperature"
+        self.bridgeUnitOfMeasurement = "°" .. fibaroDevice.properties.unit
+        self.icon = "&#127777;&#65039;" -- 🌡️
+    elseif self:fibaroDeviceHasType("com.fibaro.lightSensor") then
+        self.subtype = "illuminance"
+    elseif self:fibaroDeviceHasType("com.fibaro.humiditySensor") then 
+        self.subtype = "humidity"
+    elseif self:fibaroDeviceHasType("com.fibaro.energySensor") then 
+        self.subtype = "energy"
+        self.icon = "&#9889;" -- ⚡
+    elseif self:fibaroDeviceHasType("com.fibaro.powerSensor") then 
+        self.subtype = "power"
+        self.icon = "&#9889;" -- ⚡
+    elseif self:fibaroDeviceHasType("com.fibaro.batteryLevelSensor") then 
+        self.subtype = "battery"
+        self.icon = "&#128267;" -- 🔋
+    elseif (self.subtype == RemoteController.subtype) then 
+        -- *** REFACTOR
         -- do nothing / the purpose for this logical condition is to make sure RemoteController doesn't fall into "Unknown multilevel sensor" category
-    elseif (device.properties.unit == "V") then
-        device.bridgeSubtype = "voltage"
-    elseif (device.properties.unit == "A") then
-        device.bridgeSubtype = "current"
-    elseif (device.properties.unit == "W" or device.properties.unit == "kW" or device.properties.unit == "kVA") then
-        device.bridgeSubtype = "power"
+    elseif (fibaroDevice.properties.unit == "V") then
+        self.subtype = "voltage"
+        self.icon = "&#9889;" -- ⚡
+    elseif (fibaroDevice.properties.unit == "A") then
+        self.subtype = "current"
+        self.icon = "&#9889;" -- ⚡
+    elseif (fibaroDevice.properties.unit == "Hz") then
+        self.subtype = "frequency"
+    elseif (fibaroDevice.properties.unit == "W" or fibaroDevice.properties.unit == "kW" or fibaroDevice.properties.unit == "kVA") then
+        self.subtype = "power"
+        self.icon = "&#9889;" -- ⚡
     else
-        print("[MultilevelSensor.init] Using default sensor type, as couldn't identify specialisation for " .. tostring(device.id) .. " " .. tostring(device.name) .. " " .. tostring(device.properties.unit))
+        --print("[MultilevelSensor.init] No sensor specialization for #" .. tostring(self.id) .. " \"" .. tostring(self.name) .. "\" that has type " .. fibaroDevice.baseType .. "-" .. fibaroDevice.type .. " and measured in '" .. tostring(fibaroDevice.properties.unit) .. "' unit, thus using default sensor class")
     end
 end
 
 -----------------------------------
 -- MULTILEVEL SWITCH (COVER)
 -----------------------------------
-Cover = inheritFrom(PrototypeDevice)
-Cover.bridgeType = "cover"
-Cover.bridgeBinary = true
-Cover.bridgeMultilevel = true
-Cover.bridgeRead = true
-Cover.bridgeWrite = true
+Cover = inheritFrom(PrototypeEntity)
+Cover.type = "cover"
+Cover.supportsBinary = true
+Cover.supportsMultilevel = true
+Cover.supportsRead = true
+Cover.supportsWrite = true
 
 function Cover.isSupported(fibaroDevice)
     if (fibaroDevice.baseType == "com.fibaro.baseShutter") then
@@ -273,15 +336,15 @@ function Cover.isSupported(fibaroDevice)
     end
 end
 
-function Cover:init(device) 
-    device.customPropertySetters = { }
-    device.customPropertySetters["state"] = function (propertyName, value) 
+function Cover:init(fibaroDevice) 
+    self.customPropertySetters = { }
+    self.customPropertySetters["state"] = function (propertyName, value) 
         if (value == "open") then
-            fibaro.call(device.id, "setValue", 99)
+            fibaro.call(self.id, "setValue", 99)
         elseif (value == "close") then
-            fibaro.call(device.id, "setValue", 0)
+            fibaro.call(self.id, "setValue", 0)
         elseif (value == "stop") then
-            fibaro.call(device.id, "stop")
+            fibaro.call(self.id, "stop")
         else
             print("Unsupported state")
         end
@@ -291,24 +354,28 @@ end
 -----------------------------------
 -- THERMOSTAT (MULTILEVEL SWITCH)
 -----------------------------------
-Thermostat = inheritFrom(PrototypeDevice)
-Thermostat.bridgeType = "climate"
-Thermostat.bridgeBinary = false
-Thermostat.bridgeMultilevel = true
-Thermostat.bridgeRead = true
-Thermostat.bridgeWrite = true 
+Thermostat = inheritFrom(PrototypeEntity)
+Thermostat.type = "climate"
+Thermostat.supportsBinary = false
+Thermostat.supportsMultilevel = true
+Thermostat.supportsRead = true
+Thermostat.supportsWrite = true 
+Thermostat.icon = "&#127965;&#65039;" -- 🏝️
 
 function Thermostat.isSupported(fibaroDevice)
-    if (fibaroDevice.type == "com.fibaro.hvacSystem") then 
+    if fibaroDevice.baseType == "com.fibaro.hvacSystem" or fibaroDevice.type == "com.fibaro.hvacSystem" then 
         return true 
     else 
         return false
     end
 end
 
-function Thermostat:init(device) 
-    for i, mode in ipairs(device.properties.supportedThermostatModes) do
-        device.properties.supportedThermostatModes[i] = string.lower(mode)
+function Thermostat:init(fibaroDevice) 
+    local fibaroDeviceProperties = self.sourceDeviceNode.fibaroDevice.properties
+    
+    self.properties.supportedThermostatModes = { }
+    for i, mode in ipairs(fibaroDeviceProperties.supportedThermostatModes) do
+        self.properties.supportedThermostatModes[i] = string.lower(mode)
     end
 end
 
@@ -320,33 +387,30 @@ function Thermostat:setHeatingThermostatSetpoint(targetTemperature)
     fibaro.call(self.id, "setHeatingThermostatSetpoint", targetTemperature)
 end
 
-function Thermostat:getTemperatureSensor(allDevices)
-    local device = allDevices[self.id + 1]
-    if (not Thermostat.isTemperatureSensor(device)) then
-        -- *** no laughs, to be refactored with linked devices later :)
-        device = allDevices[self.id + 2]
+function Thermostat:getTemperatureSensor()
+    local sourceDeviceNode = self.sourceDeviceNode
+    local parentNode = sourceDeviceNode.parentNode
+
+    local relatedNodeList = {}
+    if (parentNode) then
+        shallowInsertTo(parentNode.childNodeList, relatedNodeList)    
+    end
+    shallowInsertTo(sourceDeviceNode.childNodeList, relatedNodeList)
+
+    for _, siblingNode in ipairs(relatedNodeList) do
+        if (siblingNode.included and siblingNode.identifiedHaEntity and siblingNode.identifiedHaEntity.type == "sensor" and siblingNode.identifiedHaEntity.subtype == "temperature") then
+            return siblingNode.identifiedHaEntity
+        end
     end
 
-    if (Thermostat.isTemperatureSensor(device)) then
-        return device
-    else
-        return nil
-    end
-end
-
-function Thermostat.isTemperatureSensor(device)
-    if ((device ~= nil) and (MultilevelSensor.isSupported(device)) and (device.bridgeSubtype == "temperature")) then
-        return true
-    else
-        return false
-    end
+    return nil
 end
 
 -----------------------------------
 -- REMOTE CONTROLLER
 -----------------------------------
 RemoteController = inheritFrom(MultilevelSensor)
-RemoteController.bridgeSubtype = "remoteController"
+RemoteController.subtype = "remoteController"
 
 function RemoteController.isSupported(fibaroDevice)
     if ((fibaroDevice.baseType == "com.fibaro.remoteController") or ( fibaroDevice.baseType == "com.fibaro.remoteSceneController") or ( fibaroDevice.type == "com.fibaro.remoteController") or (fibaroDevice.type == "com.fibaro.remoteSceneController"))      then
@@ -359,13 +423,14 @@ end
 ------------------------------------
 -- REMOTE CONTROLLER - BUTTON ACTION
 ------------------------------------
-RemoteControllerKey = inheritFrom(PrototypeDevice)
-RemoteControllerKey.bridgeType = "device_automation"
-RemoteControllerKey.bridgeSubtype = "trigger"
-RemoteControllerKey.bridgeBinary = true
-RemoteControllerKey.bridgeMultilevel = false
-RemoteControllerKey.bridgeRead = true
-RemoteControllerKey.bridgeWrite = false
+RemoteControllerKey = inheritFrom(PrototypeEntity)
+RemoteControllerKey.type = "device_automation"
+RemoteControllerKey.subtype = "trigger"
+RemoteControllerKey.supportsBinary = true
+RemoteControllerKey.supportsMultilevel = false
+RemoteControllerKey.supportsRead = true
+RemoteControllerKey.supportsWrite = false
+RemoteControllerKey.icon = "&#9654;&#65039;" -- ▶️
 
 function RemoteControllerKey.isSupported(fibaroDevice)
     if (fibaroDevice.baseType == "com.alexander_vitishchenko.remoteKey") then
@@ -375,7 +440,7 @@ function RemoteControllerKey.isSupported(fibaroDevice)
     end
 end
 
-function RemoteControllerKey.init(device)
+function RemoteControllerKey.init(fibaroDevice)
     -- not needed for now
 end
 
@@ -398,79 +463,19 @@ local fibaroTypeOverride = {
     ["com.fibaro.FGWP102"] = "com.fibaro.binarySwitch"
 }
 
-function getFibaroDevicesByFilter(customDeviceFilterJsonStr)
-    -- EXAMPLE FILTERS FROM  https://manuals.fibaro.com/content/other/FIBARO_System_Lua_API.pdf => "fibaro:getDevicesId(filters)"
-    --[[
-            {
-                "filter": "hasProperty",
-                "value": ["configured", "dead", "model"]
-            },
+function cleanDeviceCache()
+    deviceHierarchy = { }
+    deviceNodeById = { }
 
-            {
-                "filter": "interface",
-                "value": ["zwave", "levelChange"]
-            },
+    allFibaroDevicesAmount = 0
+    filteredFibaroDevicesAmount = 0
+    identifiedHaEntitiesAmount = 0
+end
 
-            {
-                "filter": "parentId",
-                "value": [664]
-            },
+function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
+    cleanDeviceCache()
 
-            {
-                "filter": "type",
-                "value": ["com.fibaro.multilevelSwitch"]
-            },
-
-            {
-                "filter": "roomID",
-                "value": [2, 3]
-            },
-
-            {
-                "filter": "baseType",
-                "value": ["com.fibaro.binarySwitch"]
-            },
-
-            {
-                "filter": "isTypeOf",
-                "value": ["com.fibaro.binarySwitch"]
-            },
-
-            {
-                "filter": "isPlugin",
-                "value": [true]
-            },
-
-            {
-                "filter": "propertyEquals",
-                "value":
-                    [
-                        {
-                            "propertyName": "configured",
-                            "propertyValue": [true]
-                        },
-                        {
-                            "propertyName": "dead",
-                            "propertyValue": [false]
-                        },
-                        {
-                            "propertyName": "deviceIcon",
-                            "propertyValue": [15]
-                        },
-                        {
-                            "propertyName": "deviceControlType",
-                            "propertyValue": [15,20,25]
-                        }
-                    ]
-            },
-
-            {
-                "filter": "deviceID",
-                "value": [55,120,902]
-            }
-    ]]--
-    
-    local deviceFilterJson = 
+    deviceFilter = 
         {
             filters = {
                 {
@@ -485,7 +490,7 @@ function getFibaroDevicesByFilter(customDeviceFilterJsonStr)
             attributes = {
                 -- define the list of Fibaro device attributes we are interested in
                 main = {
-                    "id", "name", "roomID", "view", "type", "baseType", "enabled", "visible", "isPlugin", "parentId", "viewXml", "hasUIView", "configXml", "interfaces", "properties", "actions", "created", "modified", "sortOrder"
+                    "id"
                 }
             }
         }
@@ -499,53 +504,196 @@ function getFibaroDevicesByFilter(customDeviceFilterJsonStr)
 
         local customDeviceFilterJson = json.decode("{ filters: [ " .. customDeviceFilterJsonStr .. "] }") 
 
-        shallowInsertTo(customDeviceFilterJson.filters, deviceFilterJson.filters)
+        shallowInsertTo(customDeviceFilterJson.filters, deviceFilter.filters)
     end
 
-    local allDevices = api.post( 
+    print("Filter: " .. json.encode(deviceFilter))
+
+    local allFibaroDevices = api.get("/devices")
+    allFibaroDevicesAmount = #allFibaroDevices
+
+    local filteredFibaroDeviceIds = api.post( 
         "/devices/filter", 
-        deviceFilterJson
+        deviceFilter
     )
+    filteredFibaroDevicesAmount = #filteredFibaroDeviceIds
 
-    print("Filter: " .. json.encode(deviceFilterJson))
-
-    print("Found devices " .. #allDevices)
-    print("")
-
-    for i, j in ipairs(allDevices) do
-        overrideFibaroDeviceType(j)
+    ----------- BUILD FIBARO DEVICE HIERARCHY
+    for i=1, #allFibaroDevices do
+        appendNodeByFibaroDevice(allFibaroDevices[i], false)
     end
 
-    return allDevices
+    -- DO PERFORMANCE HEAVY OPERATIONS ONLY FOR DEVICES THAT ARE IN FILTER SCOPE
+    for i=1, #filteredFibaroDeviceIds do
+        local fibaroDeviceId = filteredFibaroDeviceIds[i].id
+        local deviceNode = deviceNodeById[fibaroDeviceId]
+        local fibaroDevice = deviceNode.fibaroDevice
+        
+        ----------- INCLUDE NODE WITH DEVICE MATCHING FILTER CRITERIA
+        deviceNode.included = true
+
+        ----------- CREATE POWER, ENERGY & BATTERLY LEVEL SENSORS INSTEAD OF RELYING ON ATTRIBUTES WITHIN A SINGLE DEVICE
+        __checkAndAppendLinkedDevices(fibaroDevice)
+    end
+
+    __identifyDeviceHierarchy(deviceHierarchy)
+
+    return deviceHierarchy
 end
 
-function getFibaroDeviceById(id)
+----------- CREATE POWER, ENERGY & BATTERLY LEVEL SENSORS INSTEAD OF RELYING ON ATTRIBUTES WITHIN A SINGLE DEVICE
+function __checkAndAppendLinkedDevices(fibaroDevice)
+
+    -- Does device support energy monitoring? Create a dedicated sensor for Home Assistant
+    if (table_contains_value(fibaroDevice.interfaces, "energy")) then 
+        local sensor = createLinkedMultilevelSensorDevice(fibaroDevice, "energy")
+
+        appendNodeByFibaroDevice(sensor, true)
+    end
+
+    -- Does device support power monitoring? Create a dedicated sensor for Home Assistant
+    if (table_contains_value(fibaroDevice.interfaces, "power")) then 
+        local sensor = createLinkedMultilevelSensorDevice(fibaroDevice, "power")
+
+        appendNodeByFibaroDevice(sensor, true)
+    end
+
+
+    -- Battery powered device? Create a dedicated battery sensor for Home Assistant
+    if (table_contains_value(fibaroDevice.interfaces, "battery")) then
+        local sensor = createLinkedMultilevelSensorDevice(fibaroDevice, "batteryLevel")
+        appendNodeByFibaroDevice(sensor, true)
+    end
+
+    -- Is it a "Remote Control" device? Created dedicated devices for each combination of Button and Press Type
+    --if (device.type == RemoteController.type and device.subtype == RemoteController.subtype) then
+    if (RemoteController.isSupported(fibaroDevice)) then
+        if fibaroDevice.properties.centralSceneSupport then
+            for _, i in ipairs(fibaroDevice.properties.centralSceneSupport) do
+                for _, j in ipairs(i.keyAttributes) do
+                    local sensor = createLinkedKey(fibaroDevice, i.keyId, j)
+
+                    appendNodeByFibaroDevice(sensor, true)
+                end
+            end
+        end
+    end
+end
+
+function appendNodeByFibaroDevice(fibaroDevice, included)
+    local fibaroDeviceId = fibaroDevice.id
+    local parentNode = deviceNodeById[fibaroDevice.parentId]
+
+    local node = {
+        id = fibaroDevice.id,
+
+        fibaroDevice = fibaroDevice,
+        identifiedHaEntity = nil,
+        identifiedHaDevice = nil,
+
+        parentNode = parentNode,
+
+        childNodeList = { },
+
+        included = included,
+
+        isHaDevice = false
+    }
+    deviceNodeById[fibaroDeviceId] = node
+
+    -- enrich with room name, base/type fixes, etc
+    if (not fibaroDevice.linkedDevice) then
+        enrichFibaroDeviceWithMetaInfo(node.fibaroDevice)
+    end
+
+    if parentNode then
+        table.insert(parentNode.childNodeList, node)
+    else
+        table.insert(deviceHierarchy, node)
+    end
+
+    return node
+end
+
+function getDeviceNodeById(fibaroDeviceId)
+    return deviceNodeById[fibaroDeviceId]
+end
+
+
+function removeDeviceNodeFromHierarchyById(id)
+    local deviceNode = deviceNodeById[id]
+    
+    local parentNode = deviceNode.parentNode
+    local sourceListForDeviceNode
+    
+    if parentNode then
+        sourceListForDeviceNode = parentNode.childNodeList
+    else
+        sourceListForDeviceNode = deviceHierarchy
+    end
+
+    local ind = table.indexOf(sourceListForDeviceNode, deviceNode)
+
+    if (ind) then
+        table.remove(sourceListForDeviceNode, ind)
+    else
+        print("WARNING: Device node " .. id .. " was not removed from cache")
+    end
+
+    deviceNodeById[id] = nil
+end
+
+function createAndAddDeviceNodeToHierarchyById(id)
     local fibaroDevice = api.get("/devices/" .. id)
 
-    return getFibaroDeviceByInfo(fibaroDevice)
-end
-
-function getFibaroDeviceByInfo(info)
-    local fibaroDevice = info
-
-    overrideFibaroDeviceType(fibaroDevice) 
-
-    return fibaroDevice
-end
-
-function overrideFibaroDeviceType(fibaroDevice)
-    if (not fibaroDevice) or (not fibaroDevice.type) then
-        return
-    end
-    local overrideType = fibaroTypeOverride[fibaroDevice.type]
-    if overrideType then 
-        fibaroDevice.type = overrideType
-    end
+    local status, deviceFilterById = pcall(clone, deviceFilter)
+    local filterOperands = deviceFilterById.filters
+    filterOperands[#filterOperands + 1] = {
+            filter = "deviceID",
+            value = { id }
+    }
     
+    local filteredFibaroDeviceIds = api.post( 
+        "/devices/filter", 
+        deviceFilterById
+    )
+
+    local newFibaroDevice = api.get("/devices/" .. id)
+    local newDeviceNode = appendNodeByFibaroDevice(newFibaroDevice)
+
+    if #filteredFibaroDeviceIds == 0 then
+        print("Device " .. id .. " doesn't match to filter criteria and thus skipped") 
+    else
+        newDeviceNode.included = true
+
+        __checkAndAppendLinkedDevices(newDeviceNode.fibaroDevice)
+
+        __identifyDeviceNode(newDeviceNode)
+    end
+
+    return newDeviceNode
+end
+
+function enrichFibaroDeviceWithMetaInfo(fibaroDevice)
+    -- OVERRIDE BASE TYPE IF NECESSARY
     local overrideBaseType = fibaroBaseTypeOverride[fibaroDevice.baseType]
     if overrideBaseType then 
         fibaroDevice.baseType = overrideBaseType
     end
+
+    -- OVERRIDE TYPE IF NECESSARY
+    local overrideType = fibaroTypeOverride[fibaroDevice.type]
+    if overrideType then 
+        fibaroDevice.type = overrideType
+    end
+
+    fibaroDevice.roomName = tostring(fibaro.getRoomNameByDeviceID(fibaroDevice.id))
+
+    return fibaroDevice
+end
+
+function PrototypeEntity.isSupported(fibaroDevice)
+    print("'isSupported' function is mandatory for implementation")
 end
 
 function fibaroDeviceHasType(fibaroDevice, type)
@@ -568,7 +716,7 @@ end
 -- HELPER FUNCTIONS - IDENTIFY DEVICE BRIDGE TYPE BY LOOKING AT FIBARO DEVICE TYPE
 -----------------------------------
 
-deviceTypeMappings = {
+haEntityTypeMappings = {
     Switch, -- binary switch
     Cover, -- multilevel switch
     Light, -- binary light
@@ -581,17 +729,176 @@ deviceTypeMappings = {
     RemoteControllerKey
 }  
 
-function identifyDevice(fibaroDevice)
-    for i, j in ipairs(deviceTypeMappings) do
-        if (j.isSupported(fibaroDevice)) then
-            local device = j:new(fibaroDevice)
-            if (device.parentId and device.parentId ~= 0) then
-                device.bridgeParent = getFibaroDeviceById(device.parentId)
-            end
+-- *** REMOVE AND MERGE WITH DEVICE HIERARCHY DISCOVERY
+function __identifyDeviceHierarchy(deviceHierarchy)
+    for _, j in pairs(deviceHierarchy) do
+        __identifyDeviceNode(j)
+    end
+end
 
-            return device
+function __identifyDeviceNode(deviceNode)
+    -- identify Home Assistant entity
+    if (deviceNode.included) then
+        -- *** REFACTOR TO REUSE IN A SIGNLE NODE DISCOVERY
+        local identifiedHaEntity = __identifyHaEntity(deviceNode)
+
+        if (identifiedHaEntity) then
+            deviceNode.identifiedHaEntity = identifiedHaEntity
+            identifiedHaEntitiesAmount = identifiedHaEntitiesAmount + 1
         end
     end
 
-    return nil
+    -- identify Home Assistant device
+    local haDevice
+    if (deviceNode.parentNode and deviceNode.parentNode.identifiedHaDevice ~= nil) then
+        haDevice = deviceNode.parentNode.identifiedHaDevice
+    elseif deviceNode.fibaroDevice.baseType == "com.fibaro.device" then
+        haDevice = identifyAndAppendHaDevice(deviceNode)
+    elseif deviceNode.identifiedHaEntity ~= nil then
+        haDevice = identifyAndAppendHaDevice(deviceNode)
+    else
+        -- no Home Assistant device association available
+    end
+    deviceNode.identifiedHaDevice = haDevice
+
+    -- identify child devices
+    for _, deviceChildNode in pairs(deviceNode.childNodeList) do
+        __identifyDeviceNode(deviceChildNode)
+    end
+end
+
+function __identifyHaEntity(deviceNode)
+    for i, j in ipairs(haEntityTypeMappings) do
+        if (j.isSupported(deviceNode.fibaroDevice)) then
+            return j:new(deviceNode)
+        end
+    end
+
+    return nul
+end
+
+function identifyAndAppendHaDevice(deviceNode)
+    local fibaroDevice = deviceNode.fibaroDevice
+
+    local haDevice = {
+        identifiers = "hc3-" .. fibaroDevice.id,
+        name = fibaroDevice.name,
+        suggested_area = fibaroDevice.roomName,
+        manufacturer = nil,
+        hw_version = nil,
+        sw_version = nil,
+        model = fibaroDevice.properties.model, 
+        configuration_url = "http://" .. localIpAddress .. "/app/settings/devices/list#device-" .. fibaroDevice.id
+    }
+
+    if fibaroDeviceHasInterface(fibaroDevice, "quickApp") then
+        haDevice.hw_version = "QuickApp (virtual device)"
+        haDevice.sw_version = tostring(fibaroDevice.baseType) .. "-" .. tostring(fibaroDevice.type)
+    elseif fibaroDeviceHasInterface(fibaroDevice, "zwave") then
+        -- IDENTIFY HARDWARE VERSION
+        local zwaveHwVersion = fibaroDevice.properties.zwaveInfo
+        if zwaveHwVersion then
+            zwaveInfoComponents = splitStringToNumbers(zwaveHwVersion, ",")
+            if (#zwaveInfoComponents == 3) then
+                zwaveHwVersion = "Z-Wave type " .. zwaveInfoComponents[1] .. "; Z-Wave version " .. zwaveInfoComponents[2] .. "." .. zwaveInfoComponents[3]
+            end
+        end
+        if zwaveHwVersion then
+            haDevice.hw_version = zwaveHwVersion
+        else   
+            haDevice.hw_version = "Z-Wave"
+        end
+        
+        -- IDENTIFY SOFTWARE VERSION
+        if fibaroDevice.properties.zwaveCompany then
+            haDevice.manufacturer = fibaroDevice.properties.zwaveCompany
+            haDevice.sw_version = haDevice.manufacturer .. " " .. tostring(fibaroDevice.properties.zwaveVersion)
+        else
+            haDevice.sw_version = tostring(fibaroDevice.properties.zwaveVersion)
+        end
+    elseif fibaroDeviceHasInterface(fibaroDevice, "zigbee") then
+        -- experimental, need hardware for testing
+        if fibaroDevice.properties.zigbeeVersion then
+            haDevice.hw_version = "Zigbee"
+        else
+            haDevice.hw_version = "Zigbee " .. fibaroDevice.properties.zigbeeVersion
+        end
+    elseif fibaroDeviceHasInterface(fibaroDevice, "nice") then
+        -- experimental, need hardware for testing
+        if fibaroDevice.properties.niceProtocol then
+            haDevice.hw_version = "Nice " .. fibaroDevice.properties.niceProtocol
+        else
+            haDevice.hw_version = "Nice"
+        end
+    end
+
+    deviceNode.isHaDevice = true
+
+    return haDevice
+end
+
+-- ****** FIX DEFECT => TOPIC FOR LINKED DEVICE
+function createLinkedMultilevelSensorDevice(fromDevice, linkedProperty)
+    local linkedUnit
+    if (linkedProperty == "energy") then
+        linkedUnit = "kWh"
+    elseif (linkedProperty == "power") then
+        linkedUnit = "W"
+    elseif (linkedProperty == "batteryLevel") then
+        linkedUnit = "%"
+    end
+
+    local newLinkedFibaroSensor = createLinkedFibaroDevice(fromDevice, linkedProperty, linkedUnit)
+
+    newLinkedFibaroSensor.baseType = "com.fibaro.multilevelSensor"
+    newLinkedFibaroSensor.type = "com.fibaro." .. linkedProperty .. "Sensor"
+
+    return newLinkedFibaroSensor
+end
+
+function createLinkedKey(fromDevice, keyId, keyAttribute)
+    local keyAttribute = string.lower(keyAttribute)
+
+    local action = keyId .. "-" .. keyAttribute
+
+    --local newFibaroKey = createLinkedFibaroDevice(fromDevice, "value", nil)
+    local newFibaroKey = createLinkedFibaroDevice(fromDevice, action, nil)
+    newFibaroKey.baseType = "com.alexander_vitishchenko.remoteKey"
+    newFibaroKey.keyId = keyId
+    newFibaroKey.keyAttribute = keyAttribute
+
+    return newFibaroKey
+end
+
+function createLinkedFibaroDevice(fromDevice, linkedProperty, linkedUnit)
+    local newFibaroLinkedDevice = {
+        id = fromDevice.id .. "_" .. linkedProperty,
+        name = fromDevice.name,  
+        roomID = fromDevice.roomID,
+        roomName = fromDevice.roomName,
+        parentId = fromDevice.id,
+        linkedDevice = fromDevice,
+        linkedProperty = linkedProperty,
+        properties = {
+            unit = linkedUnit
+        },
+        comment = "This entity has been autogenerated by HC3 <-> Home Assistant bridge to adjust the data model difference between Fibaro HC3 and Home Assistant. Fibaro treats '" .. linkedProperty .. "' entity to be an attribute of #" .. fromDevice.id .. ". And Home Asisstant requires these to be two separate entities"
+    }
+
+    return newFibaroLinkedDevice
+end
+
+function getDeviceDescriptionById(fibaroDeviceId)
+    local description = "#" .. tostring(fibaroDeviceId)
+
+    local deviceNode = getDeviceNodeById(fibaroDeviceId)
+
+    if deviceNode then
+        local fibaroDevice = deviceNode.fibaroDevice
+        if fibaroDevice then
+            description = description .. " named as " .. tostring(fibaroDevice.name) .. " at \"" .. tostring(fibaroDevice.roomName) .. "\""
+        end
+    end
+
+    return description
 end
