@@ -1,15 +1,15 @@
---[[ RELEASE NOTES FOR 1.0.202
-Summary: Improved speed and stability of HC3 => Home Assistant event transmition
+--[[ RELEASE NOTES FOR 1.0.203
+Summary: Improved speed and stability of HC3 => Home Assistant event transmission
 
 Description:
-- improved the speed of HC3 => MQTT event, with an average latency around 50ms
-- multithread safity for HC3 event poller 
+- improved the speed of HC3 => MQTT event detection and transmission, with an average latency around 50ms
+- multithread safety for HC3 event polling 
 ]]--
 
 function QuickApp:onInit()
     self:debug("")
     self:debug("------- HC3 <-> MQTT BRIDGE")
-    self:debug("Version: 1.0.202")
+    self:debug("Version: 1.0.203")
     self:debug("(!) IMPORTANT NOTE FOR THOSE USERS WHO USED THE QUICKAPP PRIOR TO 1.0.191 VERSION: Your Home Assistant dashboards and automations need to be reconfigured with new enity ids. This is a one-time effort that introduces a relatively \"small\" inconvenience for the greater good (a) introduce long-term stability so Home Assistant entity duplicates will not happen in certain scenarios (b) entity id namespaces are now syncronized between Fibaro and Home Assistant ecosystems")
 
     self:turnOn()
