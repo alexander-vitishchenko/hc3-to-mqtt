@@ -1,8 +1,9 @@
 ----------------------------------- 
 -- CACHE FOR QUICKAPP PERFORMANCE BOOST 
 -----------------------------------
--- **** ADD VIRTUAL ROOT NODE AT LEVEL 0
-deviceHierarchy = { }
+deviceHierarchyRootNode = nil
+-- *** remove
+-- deviceHierarchy = { }
 deviceNodeById = { }
 deviceFilter = { }
 
@@ -31,7 +32,9 @@ local fibaroTypeOverride = {
 
 
 function cleanDeviceCache()
-    deviceHierarchy = { }
+    deviceHierarchyRootNode = nil
+    -- *** remove
+    -- deviceHierarchy = { }
     deviceNodeById = { }
 
     allFibaroDevicesAmount = 0
@@ -88,6 +91,17 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
     -- table.insert(filteredFibaroDeviceIds, {id = X}) -- TEST DEVICE
     filteredFibaroDevicesAmount = #filteredFibaroDeviceIds
 
+    ----------- PREPARE VIRTUAL ROOT NODE
+    deviceHierarchyRootNode = createUnidentifiedDeviceNode(
+        {
+            id = 0,
+            name = "Root device node",
+            parentId = nil,
+            roomId = nil,
+        }, 
+        false
+    )
+
     ----------- BUILD FIBARO DEVICE HIERARCHY
     for i=1, #allFibaroDevices do
         appendNodeByFibaroDevice(allFibaroDevices[i], false)
@@ -104,12 +118,13 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
         deviceNode.included = true
 
         ----------- CREATE POWER, ENERGY & BATTERLY LEVEL SENSORS INSTEAD OF RELYING ON ATTRIBUTES WITHIN A SINGLE DEVICE
+        -- *** refactor "check" naming
         __checkAndAppendLinkedDevices(fibaroDevice)
     end
-    
-    __identifyDeviceHierarchy(deviceHierarchy)
 
-    return deviceHierarchy
+    __identifyDeviceNode(deviceHierarchyRootNode)
+
+    return deviceHierarchyRootNode
 end
 
 ----------- CREATE POWER, ENERGY & BATTERLY LEVEL SENSORS INSTEAD OF RELYING ON ATTRIBUTES WITHIN A SINGLE DEVICE
@@ -153,7 +168,35 @@ end
 
 function appendNodeByFibaroDevice(fibaroDevice, included)
     local fibaroDeviceId = fibaroDevice.id
-    local parentNode = deviceNodeById[fibaroDevice.parentId]
+
+    local node = createUnidentifiedDeviceNode(fibaroDevice, included)
+
+    deviceNodeById[fibaroDeviceId] = node
+
+    -- enrich with room name, base/type fixes, etc
+    if (not fibaroDevice.linkedDevice) then
+        enrichFibaroDeviceWithMetaInfo(node.fibaroDevice)
+    end
+
+    local parentNode = node.parentNode
+    if parentNode then
+        table.insert(parentNode.childNodeList, node)
+    else
+        table.insert(deviceHierarchyRootNode.childNodeList, node)
+    end
+
+    return node
+end
+
+-- *** rename "included" to "includedToFilterCriteria"
+function createUnidentifiedDeviceNode(fibaroDevice, included)
+    -- lookup parent node from cache
+    local parentNode
+    if fibaroDevice.parentId then
+        parentNode = deviceNodeById[fibaroDevice.parentId]
+    else
+        parentNode = nil
+    end
 
     local node = {
         id = fibaroDevice.id,
@@ -168,23 +211,13 @@ function appendNodeByFibaroDevice(fibaroDevice, included)
 
         included = included,
 
+        -- *** simplify node structure/naming
         isHaDevice = false
     }
-    deviceNodeById[fibaroDeviceId] = node
-
-    -- enrich with room name, base/type fixes, etc
-    if (not fibaroDevice.linkedDevice) then
-        enrichFibaroDeviceWithMetaInfo(node.fibaroDevice)
-    end
-
-    if parentNode then
-        table.insert(parentNode.childNodeList, node)
-    else
-        table.insert(deviceHierarchy, node)
-    end
 
     return node
 end
+
 
 function getDeviceNodeById(fibaroDeviceId)
     return deviceNodeById[fibaroDeviceId]
@@ -279,13 +312,15 @@ function fibaroDeviceHasNoInterface(fibaroDevice, interface)
     return not fibaroDeviceHasInterface(fibaroDevice, interface)
 end
 
--- *** REMOVE AND MERGE WITH DEVICE HIERARCHY DISCOVERY
+-- *** remove/refactor
 function __identifyDeviceHierarchy(deviceHierarchy)
     for _, j in pairs(deviceHierarchy) do
         __identifyDeviceNode(j)
     end
 end
 
+-- *** REMOVE AND MERGE WITH DEVICE HIERARCHY DISCOVERY
+-- *** rename to __identifyDeviceNodeAndItsChildren
 function __identifyDeviceNode(deviceNode)
     -- identify Home Assistant entity
     if (deviceNode.included) then

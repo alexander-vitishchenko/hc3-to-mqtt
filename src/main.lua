@@ -1,4 +1,4 @@
---[[ RELEASE NOTES FOR 1.0.208
+--[[ RELEASE NOTES FOR 1.0.209
 Summary: Updated source files structure for better maintainability
 
 Description:
@@ -9,7 +9,7 @@ Description:
 function QuickApp:onInit()
     self:debug("")
     self:debug("------- HC3 <-> MQTT BRIDGE")
-    self:debug("Version: 1.0.208")
+    self:debug("Version: 1.0.209")
     self:debug("(!) IMPORTANT NOTE FOR THOSE USERS WHO USED THE QUICKAPP PRIOR TO 1.0.191 VERSION: Your Home Assistant dashboards and automations need to be reconfigured with new enity ids. This is a one-time effort that introduces a relatively \"small\" inconvenience for the greater good (a) introduce long-term stability so Home Assistant entity duplicates will not happen in certain scenarios (b) entity id namespaces are now syncronized between Fibaro and Home Assistant ecosystems")
 
     self:turnOn()
@@ -174,7 +174,8 @@ end
 function QuickApp:discoverDevicesAndPublishToMqtt()
     local startTime = os.time()
     local phaseStartTime = startTime
-    local deviceHierarchy = self:discoverDeviceHierarchy()
+    
+    local deviceHierarchyRootNode = self:discoverDeviceHierarchy()
     local phaseEndTime = os.time()
     
     self:debug("")
@@ -183,10 +184,10 @@ function QuickApp:discoverDevicesAndPublishToMqtt()
     self:debug("Filtered Fibaro devices to           : " .. filteredFibaroDevicesAmount)
     self:debug("Number of Home Assistant entities    : " .. identifiedHaEntitiesAmount .. " => number of supported Fibaro devices + automatically generated entities for power, energy and battery sensors (when found appropriate interfaces for a Fibaro device) + automatically generated  remote controllers, where cartesian join is applied for each key and press types")
     self:debug("")
-    self:printDeviceHierarchy(deviceHierarchy)
+    self:printDeviceNode(deviceHierarchyRootNode, 0)
 
     phaseStartTime = os.time()
-    self:publishDeviceHierachyToMqtt(deviceHierarchy)
+    self:publishDeviceNodeToMqtt(deviceHierarchyRootNode)
     phaseEndTime = os.time()    
 
     self:debug("")
@@ -229,6 +230,7 @@ function QuickApp:discoverDeviceHierarchy()
     return fibaroDevices
 end
 
+-- *** remove/refactor
 function QuickApp:printDeviceHierarchy(deviceHierarchy)
     for _, j in pairs(deviceHierarchy) do
         self:printDeviceNode(j, 1)
@@ -337,7 +339,9 @@ function QuickApp:printDeviceNode(deviceNode, level)
         deviceDescription = deviceDescription .. " (excluded by QuickApp filters)"
     end
 
-    self:debug(deviceDescription)
+    if (level > 0) then
+        self:debug(deviceDescription)
+    end
 
     for _, deviceChildNode in pairs(deviceNode.childNodeList) do
         self:printDeviceNode(deviceChildNode, level + 1)
@@ -345,11 +349,14 @@ function QuickApp:printDeviceNode(deviceNode, level)
 
 end
 
+-- *** remove/refactor
 function QuickApp:publishDeviceHierachyToMqtt(deviceHierarchy)
     for _, deviceNode in pairs(deviceHierarchy) do
         self:publishDeviceNodeToMqtt(deviceNode)
     end
 end
+
+-- *** rename to "*AndItsChildren"
 function QuickApp:publishDeviceNodeToMqtt(deviceNode)
     if (deviceNode.identifiedHaEntity) then
         self:__publishDeviceNodeToMqtt(deviceNode)
