@@ -1,15 +1,15 @@
---[[ RELEASE NOTES FOR 1.0.203
-Summary: Improved speed and stability of HC3 => Home Assistant event transmission
+--[[ RELEASE NOTES FOR 1.0.208
+Summary: Updated source files structure for better maintainability
 
 Description:
-- improved the speed of HC3 => MQTT event detection and transmission, with an average latency around 50ms
-- multithread safety for HC3 event polling 
+- device_api and device_helper are seggretated
+- minor logging improvements
 ]]--
 
 function QuickApp:onInit()
     self:debug("")
     self:debug("------- HC3 <-> MQTT BRIDGE")
-    self:debug("Version: 1.0.203")
+    self:debug("Version: 1.0.208")
     self:debug("(!) IMPORTANT NOTE FOR THOSE USERS WHO USED THE QUICKAPP PRIOR TO 1.0.191 VERSION: Your Home Assistant dashboards and automations need to be reconfigured with new enity ids. This is a one-time effort that introduces a relatively \"small\" inconvenience for the greater good (a) introduce long-term stability so Home Assistant entity duplicates will not happen in certain scenarios (b) entity id namespaces are now syncronized between Fibaro and Home Assistant ecosystems")
 
     self:turnOn()
@@ -129,7 +129,7 @@ end
 function QuickApp:onClosed(event)
     self:updateProperty("value", false)
     self:debug("")
-    self:debug("------- Disconnected from MQTT (Home Assistant)")
+    self:debug("------- Disconnected from MQTT/Home Assistant")
 end
 
 function QuickApp:onError(event)
@@ -156,7 +156,7 @@ end
 
 function QuickApp:onConnected(event) 
     self:debug("")
-    self:debug("------- Connected to MQTT (Home Assistant)")
+    self:debug("------- Connected to MQTT/Home Assistant")
 
     for _, mqttConvention in ipairs(self.mqttConventions) do
         mqttConvention.mqtt = self.mqtt
@@ -178,9 +178,9 @@ function QuickApp:discoverDevicesAndPublishToMqtt()
     local phaseEndTime = os.time()
     
     self:debug("")
-    self:debug("-------- Device discovery has been complete in " .. (phaseEndTime - phaseStartTime) .. " second(s)")
-    self:debug("Total devices                        : " .. allFibaroDevicesAmount)
-    self:debug("Filtered to                          : " .. filteredFibaroDevicesAmount)
+    self:debug("-------- Fibaro device discovery has been complete in " .. (phaseEndTime - phaseStartTime) .. " second(s)")
+    self:debug("Total Fibaro devices                 : " .. allFibaroDevicesAmount)
+    self:debug("Filtered Fibaro devices to           : " .. filteredFibaroDevicesAmount)
     self:debug("Number of Home Assistant entities    : " .. identifiedHaEntitiesAmount .. " => number of supported Fibaro devices + automatically generated entities for power, energy and battery sensors (when found appropriate interfaces for a Fibaro device) + automatically generated  remote controllers, where cartesian join is applied for each key and press types")
     self:debug("")
     self:printDeviceHierarchy(deviceHierarchy)
@@ -190,19 +190,18 @@ function QuickApp:discoverDevicesAndPublishToMqtt()
     phaseEndTime = os.time()    
 
     self:debug("")
-    self:debug("------- Device configuration and states have been distributed to MQTT in " .. (phaseEndTime - phaseStartTime) .. " second(s)")
+    self:debug("------- Fibaro device configuration and states have been distributed to MQTT/Home Assistant in " .. (phaseEndTime - phaseStartTime) .. " second(s)")
 
     local diff = os.time() - startTime
 
     self:updateView("totalFibaroDevices", "text", "Total Fibaro devices: " .. allFibaroDevicesAmount)
-    self:updateView("filteredFibaroDevices", "text", "Filtered devices: " .. filteredFibaroDevicesAmount)
-    self:updateView("identifiedHaEntities", "text", "Identified devices: " .. identifiedHaEntitiesAmount)
+    self:updateView("filteredFibaroDevices", "text", "Filtered Fibaro devices: " .. filteredFibaroDevicesAmount)
+    self:updateView("haEntities", "text", "Home Assistant entities: " .. identifiedHaEntitiesAmount)
  
     self:updateView("bootTime" , "text", "Boot time: " .. diff .. "s")
 end
 
 function QuickApp:discoverDeviceHierarchy()
-
     local developmentModeStr = self:getVariable("developmentMode")
     if ((not developmentModeStr) or (developmentModeStr ~= "true")) then
         self:debug("Bridge mode: PRODUCTION")
@@ -215,8 +214,8 @@ function QuickApp:discoverDeviceHierarchy()
         fibaroDevices = getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
     else
         -- smaller number of devices for development and testing purposes
-        self:debug("Bridge mode: DEVELOPMENT")
-
+        self:debug("Bridge mode: DEVELOPMENT (temporary unsupported)")
+        --[[
         fibaroDevices = {
             enrichFibaroDeviceWithMetaInfo(
                 json.decode(
@@ -224,6 +223,7 @@ function QuickApp:discoverDeviceHierarchy()
                 )
             ) 
         }
+        ]]--
     end
 
     return fibaroDevices
@@ -373,7 +373,6 @@ function QuickApp:discoverDevicesByFilter()
             self:debug("All is good - default filter applied, where only enabled and visible devices are used")
         end
 
-
         fibaroDevices = getFibaroDevicesByFilter(customDeviceFilterJsonStr)
     else
         --smaller number of devices for development and testing purposes
@@ -435,7 +434,7 @@ function QuickApp:scheduleHc3EventsFetcher()
     self:scheduleAnotherPollingForHc3()
 
     self:debug("")
-    self:debug("------- Connected to Fibaro Home Center 3")
+    self:debug("------- Connected to Fibaro Home Center 3 events feed")
 end
 
 function QuickApp:scheduleAnotherPollingForHc3()
