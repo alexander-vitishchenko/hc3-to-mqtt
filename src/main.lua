@@ -1,4 +1,4 @@
---[[ RELEASE NOTES FOR 1.0.209
+--[[ RELEASE NOTES FOR 1.0.211
 Summary: Updated source files structure for better maintainability
 
 Description:
@@ -9,7 +9,7 @@ Description:
 function QuickApp:onInit()
     self:debug("")
     self:debug("------- HC3 <-> MQTT BRIDGE")
-    self:debug("Version: 1.0.209")
+    self:debug("Version: 1.0.211")
     self:debug("(!) IMPORTANT NOTE FOR THOSE USERS WHO USED THE QUICKAPP PRIOR TO 1.0.191 VERSION: Your Home Assistant dashboards and automations need to be reconfigured with new enity ids. This is a one-time effort that introduces a relatively \"small\" inconvenience for the greater good (a) introduce long-term stability so Home Assistant entity duplicates will not happen in certain scenarios (b) entity id namespaces are now syncronized between Fibaro and Home Assistant ecosystems")
 
     self:turnOn()
@@ -230,12 +230,7 @@ function QuickApp:discoverDeviceHierarchy()
     return fibaroDevices
 end
 
--- *** remove/refactor
-function QuickApp:printDeviceHierarchy(deviceHierarchy)
-    for _, j in pairs(deviceHierarchy) do
-        self:printDeviceNode(j, 1)
-    end
-end
+-- *** rename and move to helper class
 function QuickApp:printDeviceNode(deviceNode, level)
     local deviceDescription = ""
 
@@ -347,13 +342,6 @@ function QuickApp:printDeviceNode(deviceNode, level)
         self:printDeviceNode(deviceChildNode, level + 1)
     end
 
-end
-
--- *** remove/refactor
-function QuickApp:publishDeviceHierachyToMqtt(deviceHierarchy)
-    for _, deviceNode in pairs(deviceHierarchy) do
-        self:publishDeviceNodeToMqtt(deviceNode)
-    end
 end
 
 -- *** rename to "*AndItsChildren"

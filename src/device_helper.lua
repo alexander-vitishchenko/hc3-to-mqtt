@@ -2,8 +2,6 @@
 -- CACHE FOR QUICKAPP PERFORMANCE BOOST 
 -----------------------------------
 deviceHierarchyRootNode = nil
--- *** remove
--- deviceHierarchy = { }
 deviceNodeById = { }
 deviceFilter = { }
 
@@ -33,8 +31,6 @@ local fibaroTypeOverride = {
 
 function cleanDeviceCache()
     deviceHierarchyRootNode = nil
-    -- *** remove
-    -- deviceHierarchy = { }
     deviceNodeById = { }
 
     allFibaroDevicesAmount = 0
@@ -310,13 +306,6 @@ end
 
 function fibaroDeviceHasNoInterface(fibaroDevice, interface)
     return not fibaroDeviceHasInterface(fibaroDevice, interface)
-end
-
--- *** remove/refactor
-function __identifyDeviceHierarchy(deviceHierarchy)
-    for _, j in pairs(deviceHierarchy) do
-        __identifyDeviceNode(j)
-    end
 end
 
 -- *** REMOVE AND MERGE WITH DEVICE HIERARCHY DISCOVERY
