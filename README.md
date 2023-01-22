@@ -35,7 +35,7 @@ Your Home Assistant dashboards and automations need to be reconfigured with new 
             <details>
                <summary>Click here to see example</summary>
                <code>{"filter":"baseType", "value":["com.fibaro.actor"]}, {"filter":"deviceID", "value":[41,42]}, { MORE FILTERS MAY GO HERE }</code>.<br> Fibaro Filter API description and more examples could be found at https://manuals.fibaro.com/content/other/FIBARO_System_Lua_API.pdf => "fibaro:getDevicesId(filters)"
-               <br><br>Use "deviceFilter1", "deviceFilter2" ... "deviceFilterX" to overcome Fibaro QuickApp variable length limitation. Use "," (commas) after each filter criterion as it is not added added automatically
+               <br><br>Use "deviceFilter", "deviceFilter2", "deviceFilter3" ... "deviceFilterX" to overcome Fibaro QuickApp variable length limitation. Use "," (commas) after each filter criterion as it is not added added automatically
             </details>
             </li>
         <br>
