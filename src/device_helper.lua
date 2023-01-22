@@ -83,7 +83,7 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
     filteredFibaroDevicesAmount = #filteredFibaroDeviceIds
 
     ----------- SIMULATED ZIGBEE RGBW DEVICE
-    addSimulatedDevice(allFibaroDevices, filteredFibaroDeviceIds, "{\
+    --addSimulatedDevice(allFibaroDevices, filteredFibaroDeviceIds, "{\
   \"id\": 237,\
   \"name\": \"237\",\
   \"roomID\": 219,\
@@ -130,7 +130,7 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
   \"modified\": 1673281514,\
   \"sortOrder\": 110\
 }")
-    addSimulatedDevice(allFibaroDevices, filteredFibaroDeviceIds, "{\
+    --addSimulatedDevice(allFibaroDevices, filteredFibaroDeviceIds, "{\
   \"id\": 238,\
   \"name\": \"Nightlight RGB\",\
   \"roomID\": 230,\
@@ -201,6 +201,157 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
   \"created\": 1656669192,\
   \"modified\": 1674037508,\
   \"sortOrder\": 111\
+}")
+    --addSimulatedDevice(allFibaroDevices, filteredFibaroDeviceIds, "{\
+  \"id\": 46,\
+  \"name\": \"VR baie vitrée\",\
+  \"roomID\": 221,\
+  \"view\": [],\
+  \"type\": \"com.fibaro.device\",\
+  \"baseType\": \"\",\
+  \"enabled\": true,\
+  \"visible\": false,\
+  \"isPlugin\": false,\
+  \"parentId\": 7,\
+  \"viewXml\": false,\
+  \"hasUIView\": false,\
+  \"configXml\": false,\
+  \"interfaces\": [\
+    \"nice\",\
+    \"niceMono\"\
+  ],\
+  \"properties\": {\
+    \"buttonHold\": 5000,\
+    \"categories\": [\
+      \"other\"\
+    ],\
+    \"configuration\": true,\
+    \"dead\": false,\
+    \"deadReason\": \"\",\
+    \"deviceControlType\": 1,\
+    \"deviceIcon\": 28,\
+    \"deviceRole\": \"Other\",\
+    \"deviceState\": \"Configured\",\
+    \"icon\": {},\
+    \"inputToChannelMap\": {},\
+    \"log\": \"\",\
+    \"logTemp\": \"\",\
+    \"manufacturer\": \"NICE\",\
+    \"model\": \"\",\
+    \"niceId\": 13,\
+    \"niceProtocol\": \"Opera0\",\
+    \"numberOfSupportedButtons\": 8,\
+    \"saveLogs\": true,\
+    \"supportedDeviceRoles\": [\
+      \"Other\"\
+    ],\
+    \"userDescription\": \"\"\
+  },\
+  \"actions\": {},\
+  \"created\": 0,\
+  \"modified\": 1671310430,\
+  \"sortOrder\": 23\
+}")
+    --addSimulatedDevice(allFibaroDevices, filteredFibaroDeviceIds, "{\
+  \"id\": 34,\
+  \"name\": \"VR baie vitrée\",\
+  \"roomID\": 221,\
+  \"view\": [\
+    {\
+      \"assetsPath\": \"dynamic-plugins/com.fibaro.remoteBaseShutter\",\
+      \"name\": \"com.fibaro.remoteBaseShutter\",\
+      \"translatesPath\": \"/assets/i18n/com.fibaro.remoteBaseShutter\",\
+      \"type\": \"ts\"\
+    },\
+    {\
+      \"assetsPath\": \"dynamic-plugins/favorite-positions\",\
+      \"name\": \"favorite-positions\",\
+      \"translatesPath\": \"/assets/i18n/favorite-positions\",\
+      \"type\": \"ts\"\
+    }\
+  ],\
+  \"type\": \"com.fibaro.remoteBaseShutter\",\
+  \"baseType\": \"com.fibaro.remoteController\",\
+  \"enabled\": true,\
+  \"visible\": true,\
+  \"isPlugin\": false,\
+  \"parentId\": 46,\
+  \"viewXml\": false,\
+  \"hasUIView\": true,\
+  \"configXml\": false,\
+  \"interfaces\": [\
+    \"favoritePosition\",\
+    \"nice\",\
+    \"niceMono\"\
+  ],\
+  \"properties\": {\
+    \"buttonHold\": 5000,\
+    \"categories\": [\
+      \"remotes\"\
+    ],\
+    \"configuration\": true,\
+    \"dead\": false,\
+    \"deadReason\": \"\",\
+    \"deviceControlType\": 53,\
+    \"deviceIcon\": 218,\
+    \"deviceRole\": \"BlindsWithoutPositioning\",\
+    \"deviceState\": \"Configured\",\
+    \"favoritePositions\": [\
+      {\
+        \"label\": \"Favorite position 1\",\
+        \"name\": \"FavoritePosition1\",\
+        \"value\": 50\
+      }\
+    ],\
+    \"favoritePositionsNativeSupport\": true,\
+    \"icon\": {\
+      \"path\": \"/assets/icon/fibaro/com.fibaro.remoteBaseShutter_garage/com.fibaro.remoteBaseShutter_garage.png\",\
+      \"source\": \"HC\"\
+    },\
+    \"inputToChannelMap\": {\
+      \"close\": [\
+        3\
+      ],\
+      \"open\": [\
+        1\
+      ],\
+      \"partialOpen1\": [],\
+      \"step\": [],\
+      \"stop\": [\
+        2\
+      ],\
+      \"toggleCh1\": [],\
+      \"toggleCh2\": [],\
+      \"turnOffCh1\": [],\
+      \"turnOffCh2\": [],\
+      \"turnOnCh1\": [],\
+      \"turnOnCh2\": [],\
+      \"unsupported\": []\
+    },\
+    \"log\": \"\",\
+    \"logTemp\": \"\",\
+    \"manufacturer\": \"NICE\",\
+    \"model\": \"\",\
+    \"niceId\": 13,\
+    \"niceProtocol\": \"Opera0\",\
+    \"numberOfSupportedButtons\": 8,\
+    \"saveLogs\": true,\
+    \"supportedDeviceRoles\": [\
+      \"BlindsWithoutPositioning\",\
+      \"VenetianBlinds\",\
+      \"Awning\"\
+    ],\
+    \"userDescription\": \"\"\
+  },\
+  \"actions\": {\
+    \"close\": 0,\
+    \"open\": 0,\
+    \"setFavoritePosition\": 1,\
+    \"stop\": 0\
+  },\
+  \"created\": 1649487581,\
+  \"modified\": 1671310429,\
+  \"sortOrder\": 15\
 }")
 
     ----------- PREPARE VIRTUAL ROOT NODE

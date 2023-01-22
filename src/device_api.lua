@@ -22,7 +22,7 @@ function PrototypeEntity.isSupported(fibaroDevice)
     print("'isSupported' function is mandatory for implementation")
 end
 
--- *** MERGE "INIT" WITH "NEW"
+-- *** MERGE "INIT" WITH "NEW"?
 function PrototypeEntity:new(deviceNode)
     local status, haEntity = pcall(clone, self)
 
@@ -323,7 +323,7 @@ Cover.supportsRead = true
 Cover.supportsWrite = true
 
 function Cover.isSupported(fibaroDevice)
-    if (fibaroDevice.baseType == "com.fibaro.baseShutter") then
+    if fibaroDeviceHasType(fibaroDevice, "com.fibaro.baseShutter") or fibaroDeviceHasType(fibaroDevice, "com.fibaro.remoteBaseShutter") then
         return true
     else 
         return false
