@@ -40,7 +40,6 @@ MqttConventionHomeAssistant.rootTopic = "homeassistant/"
 
 -- TOPICS 
 function MqttConventionHomeAssistant:getDeviceTopic(haEntity)
-    -- *** rework to use own TOPICS and remove type usage
     return self.rootTopic .. tostring(haEntity.type) .. "/" .. haEntity.id .. "/"
 end
 function MqttConventionHomeAssistant:getGenericEventTopic(haEntity, eventType, propertyName) 
@@ -51,7 +50,6 @@ function MqttConventionHomeAssistant:getGenericEventTopic(haEntity, eventType, p
     end
 end
 function MqttConventionHomeAssistant:getterTopic(haEntity, propertyName)
-    -- *** REWORK TO USE ALL LINKED DEVICE PROPERTIES?
     if (haEntity.linkedEntity and propertyName == "value") then
         local result = self:getGenericEventTopic(haEntity.linkedEntity, "DevicePropertyUpdatedEvent", haEntity.linkedProperty)
         return result

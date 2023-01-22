@@ -1,22 +1,18 @@
---[[ RELEASE NOTES FOR 1.0.211
-Summary: Updated source files structure for better maintainability
+--[[ RELEASE NOTES FOR 1.0.213
+Summary: Added support for "deviceFilter" QuickApp variable to hold longs values via multiple variables
 
 Description:
-- device_api and device_helper are seggretated
-- minor logging improvements
+- use "deviceFilter", "deviceFilter1", "deviceFilter2" ... "deviceFilterX" to set long values for device filter
+- further codebase maintainability and logging improvements
 ]]--
 
 function QuickApp:onInit()
     self:debug("")
     self:debug("------- HC3 <-> MQTT BRIDGE")
-    self:debug("Version: 1.0.211")
+    self:debug("Version: 1.0.213")
     self:debug("(!) IMPORTANT NOTE FOR THOSE USERS WHO USED THE QUICKAPP PRIOR TO 1.0.191 VERSION: Your Home Assistant dashboards and automations need to be reconfigured with new enity ids. This is a one-time effort that introduces a relatively \"small\" inconvenience for the greater good (a) introduce long-term stability so Home Assistant entity duplicates will not happen in certain scenarios (b) entity id namespaces are now syncronized between Fibaro and Home Assistant ecosystems")
 
     self:turnOn()
-end
-
-function QuickApp:publish(topic, payload)
-    self.mqtt:publish(topic, tostring(payload), {retain = true})
 end
 
 function QuickApp:turnOn() 
@@ -184,7 +180,7 @@ function QuickApp:discoverDevicesAndPublishToMqtt()
     self:debug("Filtered Fibaro devices to           : " .. filteredFibaroDevicesAmount)
     self:debug("Number of Home Assistant entities    : " .. identifiedHaEntitiesAmount .. " => number of supported Fibaro devices + automatically generated entities for power, energy and battery sensors (when found appropriate interfaces for a Fibaro device) + automatically generated  remote controllers, where cartesian join is applied for each key and press types")
     self:debug("")
-    self:printDeviceNode(deviceHierarchyRootNode, 0)
+    printDeviceNode(deviceHierarchyRootNode, 0)
 
     phaseStartTime = os.time()
     self:publishDeviceNodeToMqtt(deviceHierarchyRootNode)
@@ -207,8 +203,8 @@ function QuickApp:discoverDeviceHierarchy()
     if ((not developmentModeStr) or (developmentModeStr ~= "true")) then
         self:debug("Bridge mode: PRODUCTION")
 
-        local customDeviceFilterJsonStr = self:getVariable("deviceFilter")
-        if (isEmptyString(mqttClientId)) then
+        local customDeviceFilterJsonStr = getCompositeQuickAppVariable(self, "deviceFilter")
+        if (isEmptyString(customDeviceFilterJsonStr)) then
             self:debug("All is good - default filter applied, where only enabled and visible devices are used")
         end
 
@@ -230,120 +226,6 @@ function QuickApp:discoverDeviceHierarchy()
     return fibaroDevices
 end
 
--- *** rename and move to helper class
-function QuickApp:printDeviceNode(deviceNode, level)
-    local deviceDescription = ""
-
-    local lastSiblingNode
-    local lastSiblingNodeOfParent
-    local lastSiblingNodeOfParentOfParent
-    if (deviceNode.parentNode) then
-        local siblingNodes = deviceNode.parentNode.childNodeList
-        lastSiblingNode = siblingNodes[#siblingNodes]
-
-        if (deviceNode.parentNode.parentNode) then
-            local siblingNodesOfParent = deviceNode.parentNode.parentNode.childNodeList
-            lastSiblingNodeOfParent = siblingNodesOfParent[#siblingNodesOfParent]
-
-            if (deviceNode.parentNode.parentNode.parentNode) then
-                local siblingNodesOfParentOfParent = deviceNode.parentNode.parentNode.parentNode.childNodeList
-                lastSiblingNodeOfParentOfParent = siblingNodesOfParentOfParent[#siblingNodesOfParentOfParent]
-            end
-        end
-    end
-
-    if level > 1 then
-        local levelCap = level-1
-        for i=1, levelCap do
-            deviceDescription = deviceDescription .. "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            
-            if (i > 1) then
-                deviceDescription = deviceDescription .. "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            end
-            
-            -- *** refactor with dynamic parent level number 
-            if (i < levelCap) then
-                if ((i == (levelCap - 2)) and (deviceNode.parentNode ~= lastSiblingNodeOfParentOfParent)) then
-                    deviceDescription = deviceDescription .. "&#x2503;"
-                elseif ((i == (levelCap - 1)) and (deviceNode.parentNode ~= lastSiblingNodeOfParent)) then
-                    deviceDescription = deviceDescription .. "&#x2503;"
-                else
-                    deviceDescription = deviceDescription .. "&nbsp;"
-                end
-            end
-        end
-
-        if (deviceNode == lastSiblingNode) then
-            -- ┗
-            deviceDescription = deviceDescription .. "&#x2517;"
-        else
-            -- ┣
-            deviceDescription = deviceDescription .. "&#9507;"
-        end
-
-        -- ━━▶
-        deviceDescription = deviceDescription .. "&#9473;&#9473;&#9654; "
-    end
-
-    local bracketStart
-    local bracketEnd
-    if (deviceNode.isHaDevice) then
-        -- 〚  〛
-        --bracketStart = "&#12310;"
-        --bracketEnd = "&#12311;"
-        -- < >
-        bracketStart = "<"
-        bracketEnd = ">"
-    else
-        bracketStart = "["
-        bracketEnd = "]"
-    end
-
-    local deviceType
-    if (deviceNode.included) then
-        local identifiedHaEntity = deviceNode.identifiedHaEntity
-
-        if (identifiedHaEntity) then
-            -- 💡, 🌈, 🔌, etc
-            deviceDescription = deviceDescription .. bracketStart .. identifiedHaEntity.icon .. bracketEnd.. " "
-            deviceType = identifiedHaEntity.type .. "-" .. tostring(identifiedHaEntity.subtype)
-        else
-            -- 🚧
-            deviceDescription = deviceDescription .. bracketStart .. "&#128679;" .. bracketEnd .. " "
-        end
-    else
-        -- 🛇
-        deviceDescription = deviceDescription .. bracketStart .. "&#128711;" .. bracketEnd .. " "
-    end
-
-    local fibaroDevice = deviceNode.fibaroDevice
-    
-    deviceDescription = deviceDescription .. "#" .. fibaroDevice.id .. " named as \""  .. tostring(fibaroDevice.name) .. "\""
-
-    if (fibaroDevice.roomName) then
-        deviceDescription = deviceDescription .. " in \"" .. fibaroDevice.roomName .. "\" room"
-    end
-
-    if (deviceNode.included) then
-        if (deviceType) then
-            deviceDescription = deviceDescription .. " identified as " .. deviceType .. " type"
-        else
-            deviceDescription = deviceDescription .. " (unsupported device: " .. fibaroDevice.baseType .. "-" .. fibaroDevice.type .. ")"
-        end
-    else
-        deviceDescription = deviceDescription .. " (excluded by QuickApp filters)"
-    end
-
-    if (level > 0) then
-        self:debug(deviceDescription)
-    end
-
-    for _, deviceChildNode in pairs(deviceNode.childNodeList) do
-        self:printDeviceNode(deviceChildNode, level + 1)
-    end
-
-end
-
 -- *** rename to "*AndItsChildren"
 function QuickApp:publishDeviceNodeToMqtt(deviceNode)
     if (deviceNode.identifiedHaEntity) then
@@ -354,7 +236,6 @@ function QuickApp:publishDeviceNodeToMqtt(deviceNode)
         self:publishDeviceNodeToMqtt(fibaroDeviceChildNode)
     end
 end
-
 
 function QuickApp:discoverDevicesByFilter()
     local fibaroDevices
@@ -664,7 +545,7 @@ function QuickApp:dispatchDeviceCreatedEvent(fibaroDeviceId)
         
         self:__publishDeviceProperties(newDeviceNode.fibaroDevice)
 
-        self:printDeviceNode(newDeviceNode, 1)
+        printDeviceNode(newDeviceNode, 1)
     else
         self:debug("New device " .. newDeviceNode.id .. " will not be added")
     end

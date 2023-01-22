@@ -189,6 +189,10 @@ function isEmptyString(s)
   return s == nil or s == ""
 end
 
+function isNotEmptyString(s)
+    return not isEmptyString(s)
+end
+
 function base64Encode(data)
     local b ='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 
@@ -324,4 +328,22 @@ table.indexOf = function( t, object )
     end
 
 \treturn result
+end
+
+function getCompositeQuickAppVariable(quickApp, variableName)
+    local compositeValue
+    compositeValue = quickApp:getVariable(variableName)
+
+    if isNotEmptyString(compositeValue) then
+        for i=1, 10 do
+            local value = quickApp:getVariable(variableName .. i)
+            if isNotEmptyString(value) then
+                compositeValue = compositeValue .. value
+            else
+                break
+            end
+        end
+    end
+
+    return compositeValue
 end

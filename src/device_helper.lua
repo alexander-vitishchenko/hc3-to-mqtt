@@ -9,7 +9,6 @@ allFibaroDevicesAmount = 0
 filteredFibaroDevicesAmount = 0
 identifiedHaEntitiesAmount = 0
 
-
 -----------------------------------
 --  FIBARO DEVICE TYPE CUSTOM MAPPINGS 
 -----------------------------------
@@ -26,8 +25,6 @@ local fibaroTypeOverride = {
     ["com.fibaro.FGFS101"] = "com.fibaro.floodSensor",
     ["com.fibaro.FGWP102"] = "com.fibaro.binarySwitch"
 }
-
-
 
 function cleanDeviceCache()
     deviceHierarchyRootNode = nil
@@ -411,7 +408,6 @@ function identifyAndAppendHaDevice(deviceNode)
     return haDevice
 end
 
--- ****** FIX DEFECT => TOPIC FOR LINKED DEVICE
 function createLinkedMultilevelSensorDevice(fromDevice, linkedProperty)
     local linkedUnit
     local sensorTypeSuffix = "Sensor"
@@ -478,4 +474,117 @@ function getDeviceDescriptionById(fibaroDeviceId)
     end
 
     return description
+end
+
+function printDeviceNode(deviceNode, level)
+    local deviceDescription = ""
+
+    local lastSiblingNode
+    local lastSiblingNodeOfParent
+    local lastSiblingNodeOfParentOfParent
+    if (deviceNode.parentNode) then
+        local siblingNodes = deviceNode.parentNode.childNodeList
+        lastSiblingNode = siblingNodes[#siblingNodes]
+
+        if (deviceNode.parentNode.parentNode) then
+            local siblingNodesOfParent = deviceNode.parentNode.parentNode.childNodeList
+            lastSiblingNodeOfParent = siblingNodesOfParent[#siblingNodesOfParent]
+
+            if (deviceNode.parentNode.parentNode.parentNode) then
+                local siblingNodesOfParentOfParent = deviceNode.parentNode.parentNode.parentNode.childNodeList
+                lastSiblingNodeOfParentOfParent = siblingNodesOfParentOfParent[#siblingNodesOfParentOfParent]
+            end
+        end
+    end
+
+    if level > 1 then
+        local levelCap = level-1
+        for i=1, levelCap do
+            deviceDescription = deviceDescription .. "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            
+            if (i > 1) then
+                deviceDescription = deviceDescription .. "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            end
+            
+            -- *** refactor with dynamic parent level number 
+            if (i < levelCap) then
+                if ((i == (levelCap - 2)) and (deviceNode.parentNode ~= lastSiblingNodeOfParentOfParent)) then
+                    deviceDescription = deviceDescription .. "&#x2503;"
+                elseif ((i == (levelCap - 1)) and (deviceNode.parentNode ~= lastSiblingNodeOfParent)) then
+                    deviceDescription = deviceDescription .. "&#x2503;"
+                else
+                    deviceDescription = deviceDescription .. "&nbsp;"
+                end
+            end
+        end
+
+        if (deviceNode == lastSiblingNode) then
+            -- ┗
+            deviceDescription = deviceDescription .. "&#x2517;"
+        else
+            -- ┣
+            deviceDescription = deviceDescription .. "&#9507;"
+        end
+
+        -- ━━▶
+        deviceDescription = deviceDescription .. "&#9473;&#9473;&#9654; "
+    end
+
+    local bracketStart
+    local bracketEnd
+    if (deviceNode.isHaDevice) then
+        -- 〚  〛
+        --bracketStart = "&#12310;"
+        --bracketEnd = "&#12311;"
+        -- < >
+        bracketStart = "<"
+        bracketEnd = ">"
+    else
+        bracketStart = "["
+        bracketEnd = "]"
+    end
+
+    local deviceType
+    if (deviceNode.included) then
+        local identifiedHaEntity = deviceNode.identifiedHaEntity
+
+        if (identifiedHaEntity) then
+            -- 💡, 🌈, 🔌, etc
+            deviceDescription = deviceDescription .. bracketStart .. identifiedHaEntity.icon .. bracketEnd.. " "
+            deviceType = identifiedHaEntity.type .. "-" .. tostring(identifiedHaEntity.subtype)
+        else
+            -- 🚧
+            deviceDescription = deviceDescription .. bracketStart .. "&#128679;" .. bracketEnd .. " "
+        end
+    else
+        -- 🛇
+        deviceDescription = deviceDescription .. bracketStart .. "&#128711;" .. bracketEnd .. " "
+    end
+
+    local fibaroDevice = deviceNode.fibaroDevice
+    
+    deviceDescription = deviceDescription .. "#" .. fibaroDevice.id .. " named as \""  .. tostring(fibaroDevice.name) .. "\""
+
+    if (fibaroDevice.roomName) then
+        deviceDescription = deviceDescription .. " in \"" .. fibaroDevice.roomName .. "\" room"
+    end
+
+    if (deviceNode.included) then
+        if (deviceType) then
+            deviceDescription = deviceDescription .. " identified as " .. deviceType .. " type"
+        else
+            deviceDescription = deviceDescription .. " (unsupported device: " .. fibaroDevice.baseType .. "-" .. fibaroDevice.type .. ")"
+        end
+    else
+        deviceDescription = deviceDescription .. " (excluded by QuickApp filters)"
+    end
+
+    if (level > 0) then
+        print(deviceDescription)
+    end
+
+    for _, deviceChildNode in pairs(deviceNode.childNodeList) do
+        printDeviceNode(deviceChildNode, level + 1)
+    end
+
 end

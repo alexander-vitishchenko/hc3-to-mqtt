@@ -201,10 +201,7 @@ BinarySensor.icon = "&#128065;&#65039;" -- 👁️
 
 function BinarySensor.isSupported(fibaroDevice)
     if (string.find(fibaroDevice.baseType, "Sensor") or string.find(fibaroDevice.baseType, "sensor") or string.find(fibaroDevice.baseType, "Detector") or string.find(fibaroDevice.baseType, "detector")) then
-        --if (fibaroDevice.baseType ~= "com.fibaro.multilevelSensor") and (fibaroDevice.type ~= "com.fibaro.multilevelSensor") then
-        if fibaroDeviceHasNoType(fibaroDevice, "com.fibaro.multilevelSensor") then
-            return true 
-        end
+        return true 
     end
 
     return false
@@ -445,14 +442,21 @@ end
 -- SUPPORTED DEVICE MAPPINGS
 -----------------------------------
 haEntityTypeMappings = {
-    Switch, -- binary switch
-    Cover, -- multilevel switch
-    Light, -- binary light
-    Dimmer, -- multilevel light 
-    Rgbw, -- multichannel and multilevel light
-    BinarySensor,
+    -- Switches
+    Switch, -- binary
+    Cover, -- multilevel
+
+    -- Lights
+    Dimmer, -- multilevel light; Dimmer detection has a priority over binary light
+    Light, -- binary
+    Rgbw, -- multichannel
+
+    -- Sensors
     MultilevelSensor,
+    BinarySensor,
+
     Thermostat,
+
     RemoteController,
     RemoteControllerKey
 }  
