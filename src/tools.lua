@@ -335,7 +335,7 @@ function getCompositeQuickAppVariable(quickApp, variableName)
     compositeValue = quickApp:getVariable(variableName)
 
     if isNotEmptyString(compositeValue) then
-        for i=1, 10 do
+        for i=2, 10 do
             local value = quickApp:getVariable(variableName .. i)
             if isNotEmptyString(value) then
                 compositeValue = compositeValue .. value
