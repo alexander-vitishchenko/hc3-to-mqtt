@@ -1,15 +1,15 @@
---[[ RELEASE NOTES FOR 1.0.216
-Summary: Added support for "deviceFilter" QuickApp variable to hold longs values via multiple variables
+--[[ RELEASE NOTES FOR 1.0.217
+Summary: Added experimental support for Zigbee RGBW light
 
 Description:
-- use "deviceFilter", "deviceFilter2", "deviceFilter3" ... "deviceFilterX" to set long values for device filter
+- Introduced experimental RGBW device support, that should also add support for other Zigbee devices support, and even Nice. No hardware for testing and thus waiting for QuickApp users to provide more inputs
 - further codebase maintainability and logging improvements
 ]]--
 
 function QuickApp:onInit()
     self:debug("")
     self:debug("------- HC3 <-> MQTT BRIDGE")
-    self:debug("Version: 1.0.216")
+    self:debug("Version: 1.0.217")
     self:debug("(!) IMPORTANT NOTE FOR THOSE USERS WHO USED THE QUICKAPP PRIOR TO 1.0.191 VERSION: Your Home Assistant dashboards and automations need to be reconfigured with new enity ids. This is a one-time effort that introduces a relatively \"small\" inconvenience for the greater good (a) introduce long-term stability so Home Assistant entity duplicates will not happen in certain scenarios (b) entity id namespaces are now syncronized between Fibaro and Home Assistant ecosystems")
 
     self:turnOn()

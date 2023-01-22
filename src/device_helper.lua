@@ -61,7 +61,7 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
     if (not isEmptyString(customDeviceFilterJsonStr)) then
         print("")
         print("(!) Apply custom device filter: " .. tostring(customDeviceFilterJsonStr))
-        print("--> It will only work if the provided filter is JSON like: " .. "{\"filter\":\"baseType\", \"value\":[\"com.fibaro.actor\"]},   {\"filter\":\"deviceID\", \"value\":[41,42]},   { MORE FILTERS MAY GO HERE }")
+        print("--> Supported JSON format: " .. "{\"filter\":\"baseType\", \"value\":[\"com.fibaro.actor\"]},   {\"filter\":\"deviceID\", \"value\":[41,42]},   { MORE FILTERS MAY GO HERE }")
         print("--> See the list of Fibaro API filter types at https://manuals.fibaro.com/content/other/FIBARO_System_Lua_API.pdf => \"fibaro:getDevicesId(filters)\"")
         print("")
 
@@ -74,15 +74,134 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
 
 
     local allFibaroDevices = api.get("/devices")
-    --table.insert(allFibaroDevices, json.decode("JSON")) -- TEST DEVICE
     allFibaroDevicesAmount = #allFibaroDevices
 
     local filteredFibaroDeviceIds = api.post( 
         "/devices/filter", 
         deviceFilter
     )
-    -- table.insert(filteredFibaroDeviceIds, {id = X}) -- TEST DEVICE
     filteredFibaroDevicesAmount = #filteredFibaroDeviceIds
+
+    ----------- SIMULATED ZIGBEE RGBW DEVICE
+    addSimulatedDevice(allFibaroDevices, filteredFibaroDeviceIds, "{\
+  \"id\": 237,\
+  \"name\": \"237\",\
+  \"roomID\": 219,\
+  \"view\": [],\
+  \"type\": \"com.fibaro.zigbeeDevice\",\
+  \"baseType\": \"com.fibaro.device\",\
+  \"enabled\": true,\
+  \"visible\": false,\
+  \"isPlugin\": false,\
+  \"parentId\": 8,\
+  \"viewXml\": false,\
+  \"hasUIView\": false,\
+  \"configXml\": false,\
+  \"interfaces\": [\
+    \"zigbee\"\
+  ],\
+  \"properties\": {\
+    \"categories\": [\
+      \"other\"\
+    ],\
+    \"configured\": true,\
+    \"dead\": true,\
+    \"deadReason\": \"\",\
+    \"deviceControlType\": 1,\
+    \"deviceIcon\": 28,\
+    \"deviceRole\": \"Other\",\
+    \"deviceState\": \"Configured\",\
+    \"icon\": {},\
+    \"ieeeAddress\": \"0x84FD27EEEEEEE05E\",\
+    \"log\": \"\",\
+    \"logTemp\": \"\",\
+    \"manufacturer\": \"Ajax Online\",\
+    \"model\": \"AJ_ZB_GU10\",\
+    \"networkAddress\": 12761,\
+    \"saveLogs\": true,\
+    \"supportedDeviceRoles\": [\
+      \"Other\"\
+    ],\
+    \"userDescription\": \"\",\
+    \"zigbeeDeviceIds\": \"13,97\"\
+  },\
+  \"actions\": {},\
+  \"created\": 1656669191,\
+  \"modified\": 1673281514,\
+  \"sortOrder\": 110\
+}")
+    addSimulatedDevice(allFibaroDevices, filteredFibaroDeviceIds, "{\
+  \"id\": 238,\
+  \"name\": \"Nightlight RGB\",\
+  \"roomID\": 230,\
+  \"view\": [\
+    {\
+      \"assetsPath\": \"\",\
+      \"name\": \"com.fibaro.colorController\",\
+      \"translatesPath\": \"/assets/i18n/com.fibaro.colorController\",\
+      \"type\": \"ts\"\
+    }\
+  ],\
+  \"type\": \"com.fibaro.FGRGBW442CC\",\
+  \"baseType\": \"com.fibaro.colorController\",\
+  \"enabled\": true,\
+  \"visible\": true,\
+  \"isPlugin\": false,\
+  \"parentId\": 237,\
+  \"viewXml\": false,\
+  \"hasUIView\": false,\
+  \"configXml\": false,\
+  \"interfaces\": [\
+    \"light\",\
+    \"zigbee\"\
+  ],\
+  \"properties\": {\
+    \"categories\": [\
+      \"lights\"\
+    ],\
+    \"color\": \"208.0336600431721,0,254.99999999999997,0\",\
+    \"colorComponents\": {},\
+    \"configured\": true,\
+    \"currentProgram\": 0,\
+    \"currentProgramID\": 0,\
+    \"dead\": false,\
+    \"deadReason\": \"\",\
+    \"deviceControlType\": 51,\
+    \"deviceIcon\": 15,\
+    \"deviceRole\": \"Rgb\",\
+    \"icon\": {},\
+    \"ieeeAddress\": \"0x84FD27EEEEEEE05E\",\
+    \"isLight\": true,\
+    \"log\": \"\",\
+    \"logTemp\": \"\",\
+    \"manufacturer\": \"\",\
+    \"model\": \"\",\
+    \"networkAddress\": 12761,\
+    \"programsSortOrder\": \"1,2,3,4,5\",\
+    \"saveLogs\": true,\
+    \"state\": false,\
+    \"supportedDeviceRoles\": [\
+      \"Rgb\"\
+    ],\
+    \"userDescription\": \"\",\
+    \"value\": 0\
+  },\
+  \"actions\": {\
+    \"setColor\": 1,\
+    \"setColorComponents\": 1,\
+    \"setValue\": 1,\
+    \"startColorEnhancement\": 1,\
+    \"startColorFade\": 1,\
+    \"startProgram\": 1,\
+    \"stopColorChange\": 1,\
+    \"toggle\": 0,\
+    \"turnOff\": 0,\
+    \"turnOn\": 0\
+  },\
+  \"created\": 1656669192,\
+  \"modified\": 1674037508,\
+  \"sortOrder\": 111\
+}")
 
     ----------- PREPARE VIRTUAL ROOT NODE
     deviceHierarchyRootNode = createUnidentifiedDeviceNode(
@@ -106,7 +225,7 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
         local deviceNode = deviceNodeById[fibaroDeviceId]
 
         local fibaroDevice = deviceNode.fibaroDevice
-        
+
         ----------- INCLUDE NODE WITH DEVICE MATCHING FILTER CRITERIA
         deviceNode.included = true
 
@@ -118,6 +237,20 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
     __identifyDeviceNode(deviceHierarchyRootNode)
 
     return deviceHierarchyRootNode
+end
+
+function addSimulatedDevice(allFibaroDevices, filteredFibaroDeviceIds, fibaroDeviceJsonStr)
+    local fibaroDevice = json.decode(fibaroDeviceJsonStr)
+    fibaroDevice.id = fibaroDevice.id + 20000
+    if fibaroDevice.parentId > 10 then
+        fibaroDevice.parentId = fibaroDevice.parentId + 20000
+    end
+    
+    table.insert(allFibaroDevices, fibaroDevice)
+    table.insert(filteredFibaroDeviceIds, { id = fibaroDevice.id })
+
+    allFibaroDevicesAmount = #allFibaroDevices
+    filteredFibaroDevicesAmount = #filteredFibaroDeviceIds
 end
 
 ----------- CREATE POWER, ENERGY & BATTERLY LEVEL SENSORS INSTEAD OF RELYING ON ATTRIBUTES WITHIN A SINGLE DEVICE
@@ -305,12 +438,10 @@ function fibaroDeviceHasNoInterface(fibaroDevice, interface)
     return not fibaroDeviceHasInterface(fibaroDevice, interface)
 end
 
--- *** REMOVE AND MERGE WITH DEVICE HIERARCHY DISCOVERY
 -- *** rename to __identifyDeviceNodeAndItsChildren
 function __identifyDeviceNode(deviceNode)
     -- identify Home Assistant entity
     if (deviceNode.included) then
-        -- *** REFACTOR TO REUSE IN A SIGNLE NODE DISCOVERY
         local identifiedHaEntity = __identifyHaEntity(deviceNode)
 
         if (identifiedHaEntity) then
@@ -324,9 +455,9 @@ function __identifyDeviceNode(deviceNode)
     if (deviceNode.parentNode and deviceNode.parentNode.identifiedHaDevice ~= nil) then
         haDevice = deviceNode.parentNode.identifiedHaDevice
     elseif deviceNode.fibaroDevice.baseType == "com.fibaro.device" then
-        haDevice = identifyAndAppendHaDevice(deviceNode)
+        haDevice = __identifyAndAppendHaDevice(deviceNode)
     elseif deviceNode.identifiedHaEntity ~= nil then
-        haDevice = identifyAndAppendHaDevice(deviceNode)
+        haDevice = __identifyAndAppendHaDevice(deviceNode)
     else
         -- no Home Assistant device association available
     end
@@ -348,7 +479,7 @@ function __identifyHaEntity(deviceNode)
     return nul
 end
 
-function identifyAndAppendHaDevice(deviceNode)
+function __identifyAndAppendHaDevice(deviceNode)
     local fibaroDevice = deviceNode.fibaroDevice
 
     local haDevice = {
@@ -392,12 +523,12 @@ function identifyAndAppendHaDevice(deviceNode)
         if fibaroDevice.properties.zigbeeVersion then
             haDevice.hw_version = "Zigbee"
         else
-            haDevice.hw_version = "Zigbee " .. fibaroDevice.properties.zigbeeVersion
+            haDevice.hw_version = "Zigbee " .. tostring(fibaroDevice.properties.zigbeeVersion)
         end
     elseif fibaroDeviceHasInterface(fibaroDevice, "nice") then
         -- experimental, need hardware for testing
         if fibaroDevice.properties.niceProtocol then
-            haDevice.hw_version = "Nice " .. fibaroDevice.properties.niceProtocol
+            haDevice.hw_version = "Nice " .. tostring(fibaroDevice.properties.niceProtocol)
         else
             haDevice.hw_version = "Nice"
         end
