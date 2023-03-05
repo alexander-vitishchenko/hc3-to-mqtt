@@ -1,4 +1,5 @@
 # "Fibaro Home Center 3" to "Home Assistant" integration
+Make Fibaro HC3/HCL devices available from Home Assistant through MQTT.
 
 ## ❗ Warning
 I had to move out of Kyiv to Berlin because of Russian's war against Ukraine => feature requests implementation take more time as my capacity is not the same as it used to be.
