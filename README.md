@@ -1,5 +1,5 @@
 # "Fibaro Home Center 3" to "Home Assistant" integration
-Make Fibaro HC3/HCL devices available from Home Assistant through MQTT.
+Make Fibaro HC3/HCL devices managed from Home Assistant.
 
 ## ❗ Warning
 I had to move out of Kyiv to Berlin because of Russian's war against Ukraine => feature requests implementation take more time as my capacity is not the same as it used to be.
@@ -14,7 +14,7 @@ Your Home Assistant dashboards and automations need to be reconfigured with new 
         <br><br>
     </li>
     <li>
-        Make sure you added "MQTT" integration to your Home Assistant instance as described <a href="https://www.home-assistant.io/integrations/mqtt">here</a>. 
+        Make sure you have "MQTT" integration added and configured your Home Assistant instance, as <a href="https://www.home-assistant.io/integrations/mqtt">described here</a>. 
         <br><br>
     </li>
     <li>
