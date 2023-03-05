@@ -10,7 +10,11 @@ Your Home Assistant dashboards and automations need to be reconfigured with new 
 ## How to use
 <ol>
     <li>
-        Make sure you have MQTT broker installed, e.g. <a href="https://www.home-assistant.io/integrations/mqtt/">Mosquitto within your Home Assistance instance</a>.
+        Make sure you have MQTT broker installed, e.g. <a href="https://github.com/home-assistant/addons/blob/master/mosquitto/DOCS.md">Mosquitto within your Home Assistance instance</a>. 
+        <br><br>
+    </li>
+    <li>
+        Make sure you added "MQTT" integration to your Home Assistant instance as described <a href="https://www.home-assistant.io/integrations/mqtt">here</a>. 
         <br><br>
     </li>
     <li>
