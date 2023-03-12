@@ -53,7 +53,7 @@ function MqttConventionHomeAssistant:getterTopic(haEntity, propertyName)
     if (haEntity.linkedEntity and propertyName == "value") then
         local result = self:getGenericEventTopic(haEntity.linkedEntity, "DevicePropertyUpdatedEvent", haEntity.linkedProperty)
         return result
-    elseif (haEntity.linkedEntity and propertyName == "dead") then
+    elseif (haEntity.linkedEntity and propertyName == "dead") then 
         local result = self:getGenericEventTopic(haEntity.linkedEntity, "DevicePropertyUpdatedEvent", "dead")
         return result
     else
@@ -73,31 +73,31 @@ function MqttConventionHomeAssistant:setterTopic(haEntity, propertyName)
 end
 
 function MqttConventionHomeAssistant:getLastWillAvailabilityTopic()
-    return self.rootTopic .. "hc3-dead"
+    return self.rootTopic .. "hc3-status"
 end
 
 function MqttConventionHomeAssistant:getLastWillMessage()
     return {
         topic = self:getLastWillAvailabilityTopic(),
-        payload = "true",
+        payload = "offline",
         {
             retain = true
         }
-    }    
+    }
 end
 
 function MqttConventionHomeAssistant:onConnected()
-    self.mqtt:publish(self.rootTopic .. "hc3-dead", "false", {retain = true})
+    self.mqtt:publish(self:getLastWillAvailabilityTopic(), "online", {retain = true})
+
     self.mqtt:subscribe(self.rootTopic .. "+/+/set/+")
 end
 
 function MqttConventionHomeAssistant:onDisconnected()
-    self.mqtt:publish(self.rootTopic .. "hc3-dead", "true", {retain = true})
+    self.mqtt:publish(self:getLastWillAvailabilityTopic(), "offline", {retain = true})
 end
 
 function MqttConventionHomeAssistant:onDeviceNodeCreated(deviceNode)
     local haEntity = deviceNode.identifiedHaEntity
-    --print("PUBLISH DEVICE: " .. deviceNode.fibaroDevice.id .. " " .. deviceNode.fibaroDevice.name)
     if (haEntity.type == RemoteControllerKey.type) then
         -- Home Assistant pretty unique spec for "device_automation/trigger" devices
         -- so better use another factory type for MQTT Discovery Message
@@ -117,14 +117,15 @@ function MqttConventionHomeAssistant:onDeviceNodeCreated(deviceNode)
         availability = {
             {
                 topic = self:getLastWillAvailabilityTopic(),
-                payload_available = "false",
-                payload_not_available = "true"
+                payload_available = "online",
+                payload_not_available = "offline"
             }
             ,
             {
                 topic = self:getterTopic(haEntity, "dead"),
                 payload_available = "false",
-                payload_not_available = "true" 
+                payload_not_available = "true",
+                value_template = "{{ value_json.value }}"
             }
         },
 
@@ -194,7 +195,7 @@ function MqttConventionHomeAssistant:onDeviceNodeCreated(deviceNode)
         elseif (haEntity.type == "cover") then
             msg.set_position_topic = self:setterTopic(haEntity, "value")
             msg.position_template = "{{ value_json.value }}"
-            -- value_template is deprecated since Home Assistant Core 2021.6.
+            -- value_template is deprecated since Home Assistant Core 2021.6. 
             msg.value_template = nil
             msg.position_open = 100
             msg.position_closed = 0
@@ -341,48 +342,11 @@ function MqttConventionHomeAssistant:onDeviceNodeRemoved(deviceNode)
 end
 
 function MqttConventionHomeAssistant:onPropertyUpdated(deviceNode, event)
+    local haEntity = deviceNode.identifiedHaEntity
+
     local propertyName = event.data.property
 
     local value = event.data.newValue
-
-    local haEntity = deviceNode.identifiedHaEntity
-
-    -------------------------------------------
-    -- COVER SPECIFIC
-    -------------------------------------------
-    if haEntity.type == "cover" then 
-        if propertyName == "value" then
-            -- Fibaro doesn't use "state" attribute for covers, so we'll trigger it on behalf of Fibaro based on "value" attribute
-            --[[
-            local state
-            if value < 20 then
-                state = "closed"
-            elseif value > 80 then
-                state = "open"
-            else
-                state = "unknown"
-            end
-
-            if state then
-                local payload = {
-                    id = haEntity.id,
-                    deviceName = haEntity.name,
-                    created = event.created,
-                    timestamp = os.date(),
-                    roomName = haEntity.roomName,
-                    value = state
-                }
-                formattedState = json.encode(payload)
-                self.mqtt:publish(self:getterTopic(haEntity, "state"), formattedState, {retain = true})
-            end
-            ]]--
-        elseif propertyName == "state" then
-            if (value == "unknown") then
-                -- drop event as Fibaro has "Uknnown" value assigned to the "state" attribute 
-                return
-            end
-        end
-    end
 
     -------------------------------------------
     -- REMOTE CONTROLLER (SENSOR) SPECIFIC
@@ -399,25 +363,18 @@ function MqttConventionHomeAssistant:onPropertyUpdated(deviceNode, event)
     
     value = string.lower(value)
 
-    local formattedPayload 
-    if propertyName == "dead" then
-    -- *** CHECK/REFACTOR
-    --if ((propertyName == "dead") or (device.type == RemoteController.type and device.subtype == RemoteController.subtype)) then
-        formattedPayload = tostring(value)
-    else
-        local payload = {
-            id = haEntity.id,
-            deviceName = haEntity.name,
-            created = event.created,
-            timestamp = os.date(),
-            roomName = haEntity.roomName,
-            value = value
-        }
-        formattedPayload = json.encode(payload)
-    end
+    local payload = {
+        id = haEntity.id,
+        deviceName = haEntity.name,
+        created = event.created,
+        timestamp = os.date(),
+        roomName = haEntity.roomName,
+        value = value
+    }
 
-    -- *** DUPLICATE?
-    self.mqtt:publish(self:getterTopic(haEntity, propertyName), formattedPayload, {retain = true})
+    local payloadString = json.encode(payload)
+
+    self.mqtt:publish(self:getterTopic(haEntity, propertyName), payloadString, {retain = true})
 end
 
 function MqttConventionHomeAssistant:onCommand(event)
@@ -591,7 +548,7 @@ function MqttConventionHomie:onCommand(event)
 end
 
 -----------------------------------
--- FOR EXTENDED DEBUG PURPOSES
+-- RESERVED FOR EXTENDED DEBUG PURPOSES
 -----------------------------------
 
 MqttConventionDebug = inheritFrom(MqttConventionPrototype) 

@@ -13,7 +13,7 @@ PrototypeEntity = {
     -- optional
     subtype = "default",
     modes = "'modes' needs to be initialized to an array of modes, e.g. 'heat', 'cool'",
-    icon = "&#128230;",
+    icon = "&#128230;", -- 📦
     properties = { },
     customPropertySetters = nil -- could be optionally set by a child class
 } 
@@ -92,20 +92,14 @@ function PrototypeEntity:setProperty(propertyName, value)
     end
 end
 
-function PrototypeEntity:fibaroDeviceHasType(type)
-    return fibaroDeviceHasType(self.sourceDeviceNode.fibaroDevice, type)
+function PrototypeEntity:fibaroDeviceTypeContains(type)
+    return fibaroDeviceTypeContains(self.sourceDeviceNode.fibaroDevice, type)
 end
-
-function PrototypeEntity:fibaroDeviceHasNoType(type)
-    return not fibaroDeviceHasType(self.sourceDeviceNode.fibaroDevice, type)
+function PrototypeEntity:fibaroDeviceTypeMatchesWith(type)
+    return fibaroDeviceTypeMatchesWith(self.sourceDeviceNode.fibaroDevice, type)
 end
-
 function PrototypeEntity:fibaroDeviceHasInterface(interface)
     return table_contains_value(self.sourceDeviceNode.fibaroDevice, interface)
-end
-
-function PrototypeEntity:fibaroDeviceHasNoInterface(interface)
-    return not fibaroDeviceHasInterface(self.sourceDeviceNode.fibaroDevice, interface)
 end
 
 -----------------------------------
@@ -121,7 +115,7 @@ Switch.supportsWrite = true
 Switch.icon = "&#128268;" -- 🔌
 
 function Switch.isSupported(fibaroDevice)
-    if fibaroDeviceHasType(fibaroDevice, "com.fibaro.binarySwitch") and fibaroDeviceHasNoInterface(fibaroDevice, "light") then
+    if fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.binarySwitch") and (not fibaroDeviceHasInterface(fibaroDevice, "light")) then
         return true
     else 
         return false
@@ -141,7 +135,7 @@ Light.supportsWrite = true
 Light.icon = "&#128161;" -- 💡
 
 function Light.isSupported(fibaroDevice)
-    if fibaroDeviceHasType(fibaroDevice, "com.fibaro.binarySwitch") and fibaroDeviceHasInterface(fibaroDevice, "light") then
+    if fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.binarySwitch") and fibaroDeviceHasInterface(fibaroDevice, "light") then
         return true
     else 
         return false
@@ -161,7 +155,7 @@ Dimmer.supportsWrite = true
 Dimmer.icon = "&#128161;"
 
 function Dimmer.isSupported(fibaroDevice)
-    if fibaroDeviceHasType(fibaroDevice, "com.fibaro.multilevelSwitch") and fibaroDeviceHasInterface(fibaroDevice, "light") then
+    if fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.multilevelSwitch") and fibaroDeviceHasInterface(fibaroDevice, "light") then
         return true
     else 
         return false
@@ -181,7 +175,7 @@ Rgbw.supportsWrite = true
 Rgbw.icon = "&#127752;" -- 🌈
 
 function Rgbw.isSupported(fibaroDevice)
-    if fibaroDeviceHasType(fibaroDevice, "com.fibaro.colorController") and fibaroDeviceHasInterface(fibaroDevice, "light") then
+    if fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.colorController") and fibaroDeviceHasInterface(fibaroDevice, "light") then
         return true
     else 
         return false
@@ -189,110 +183,115 @@ function Rgbw.isSupported(fibaroDevice)
 end
 
 -----------------------------------
+-- GENERIC SENSOR
+-----------------------------------
+GenericSensor = inheritFrom(PrototypeEntity)
+GenericSensor.supportsRead = true 
+GenericSensor.supportsWrite = false
+GenericSensor.icon = "&#128065;&#65039;" -- 👁️
+
+function GenericSensor.isGenericSensor(fibaroDevice)
+    if fibaroDeviceTypeContains(fibaroDevice, "Sensor") or fibaroDeviceTypeContains(fibaroDevice, "sensor") or fibaroDeviceTypeContains(fibaroDevice, "Detector") or fibaroDeviceTypeContains(fibaroDevice, "detector") or fibaroDeviceTypeContains(fibaroDevice, "Meter") or fibaroDeviceTypeContains(fibaroDevice, "meter") then
+        return true
+    else
+        return false
+    end
+end
+
+
+-----------------------------------
 -- BINARY SENSOR (DOOR, MOTION, WATER LEAK, FIRE, SMORE SENSORSMULTILEVEL FOR TEMPERATURE, ETC)
 -----------------------------------
-BinarySensor = inheritFrom(PrototypeEntity)
+BinarySensor = inheritFrom(GenericSensor)
 BinarySensor.type = "binary_sensor"
 BinarySensor.supportsBinary = true
 BinarySensor.supportsMultilevel = false
-BinarySensor.supportsRead = true 
-BinarySensor.supportsWrite = false
-BinarySensor.icon = "&#128065;&#65039;" -- 👁️
 
 function BinarySensor.isSupported(fibaroDevice)
-    if (string.find(fibaroDevice.baseType, "Sensor") or string.find(fibaroDevice.baseType, "sensor") or string.find(fibaroDevice.baseType, "Detector") or string.find(fibaroDevice.baseType, "detector")) then
-        return true 
+    if GenericSensor.isGenericSensor(fibaroDevice) and (not fibaroDevice.properties.unit) then
+        return true
+    else
+        return false
     end
-
-    return false
 end
 
 function BinarySensor:init(fibaroDevice)
-    -- ToDo: refactor with mappings
-    if self:fibaroDeviceHasType("com.fibaro.motionSensor") then
+    -- ToDo *** refactor with mappings for a bit higher performance?
+    if self:fibaroDeviceTypeMatchesWith("com.fibaro.motionSensor") then
         self.subtype = "motion"
-    elseif self:fibaroDeviceHasType("com.fibaro.floodSensor") then
+    elseif self:fibaroDeviceTypeMatchesWith("com.fibaro.floodSensor") then
         self.subtype = "moisture" 
         self.icon = "&#128166;" -- 💦
-    elseif self:fibaroDeviceHasType("com.fibaro.doorWindowSensor") then
-        if self:fibaroDeviceHasType("com.fibaro.doorSensor") then
+    elseif self:fibaroDeviceTypeMatchesWith("com.fibaro.doorWindowSensor") then
+        if self:fibaroDeviceTypeMatchesWith("com.fibaro.doorSensor") then
             self.subtype = "door"
             self.icon = "&#128682;" -- 🚪
-        elseif self:fibaroDeviceHasType("com.fibaro.windowSensor") then
+        elseif self:fibaroDeviceTypeMatchesWith("com.fibaro.windowSensor") then
             self.subtype = "window"
             self.icon = "&#129003;" -- 🟫
         else
             print("[BinarySensor.init] Uknown doow/window sensor " .. self.id .. " " .. self.name)
         end
-    elseif self:fibaroDeviceHasType("com.fibaro.fireDetector") or self:fibaroDeviceHasType("com.fibaro.fireSensor") then
+    elseif self:fibaroDeviceTypeMatchesWith("com.fibaro.fireDetector") or self:fibaroDeviceTypeMatchesWith("com.fibaro.fireSensor") then
         self.subtype = "heat"
         self.icon = "&#128293;" -- 🔥
-    elseif self:fibaroDeviceHasType("com.fibaro.coDetector") then
+    elseif self:fibaroDeviceTypeMatchesWith("com.fibaro.coDetector") then
         self.subtype = "carbon_monoxide"
         self.icon = "&#128168;" -- 💨
-    elseif self:fibaroDeviceHasType("com.fibaro.smokeSensor") then
+    elseif self:fibaroDeviceTypeMatchesWith("com.fibaro.smokeSensor") then
         self.subtype = "smoke"
         self.icon = "&#128684;" -- 🚬
-    elseif self:fibaroDeviceHasType("com.fibaro.gasDetector") then
+    elseif self:fibaroDeviceTypeMatchesWith("com.fibaro.gasDetector") then
         self.subtype = "gas" 
         self.icon = "&#128168;" -- 💨
-    elseif self:fibaroDeviceHasType("com.fibaro.lifeDangerSensor") then
+    elseif self:fibaroDeviceTypeMatchesWith("com.fibaro.lifeDangerSensor") then
         self.subtype = "safety"
     else
-        self.subtype = nil
-        --print("[BinarySensor.init] No sensor specialization for #" .. tostring(self.id) .. " \"" .. tostring(self.name) .. "\" that has type " .. fibaroDevice.baseType .. "-" .. fibaroDevice.type .. ", thus using default sensor class")
+        -- use generic sensor 
+
+        -- DEBUG: print("[BinarySensor.init] No sensor specialization for #" .. tostring(self.id) .. " \"" .. tostring(self.name) .. "\" that has type " .. fibaroDevice.baseType .. "-" .. fibaroDevice.type .. ", thus using default sensor class")
     end
 end
 
------------------------------------
+----------------------------------------------------------
 -- MULTILEVEL SENSOR (TEMPERATURE, HUMIDITY, VOLTAGE, ETC) 
------------------------------------
-MultilevelSensor = inheritFrom(PrototypeEntity)
+----------------------------------------------------------
+MultilevelSensor = inheritFrom(GenericSensor)
 MultilevelSensor.type = "sensor"
 MultilevelSensor.supportsBinary = false
 MultilevelSensor.supportsMultilevel = true
 MultilevelSensor.bridgeUnitOfMeasurement = "'unit of measurement' needs to be initialized"
-MultilevelSensor.supportsRead = true
-MultilevelSensor.supportsWrite = false
-MultilevelSensor.icon = "&#128065;&#65039;" -- 👁️
 
 function MultilevelSensor.isSupported(fibaroDevice)
-    if fibaroDevice.baseType == "com.fibaro.electricMeter" then
+    if GenericSensor.isGenericSensor(fibaroDevice) and fibaroDevice.properties.unit then
         return true
+    else
+        return false
     end
-
-    if (string.find(fibaroDevice.baseType, "Sensor") or string.find(fibaroDevice.baseType, "sensor") or string.find(fibaroDevice.baseType, "Detector") or string.find(fibaroDevice.baseType, "detector")) then
-        if fibaroDeviceHasType(fibaroDevice, "com.fibaro.multilevelSensor") then
-            return true 
-        end
-    end
-
-    return false
 end
 
 function MultilevelSensor:init(fibaroDevice)
-    -- initialize unit of measurement
     self.bridgeUnitOfMeasurement = fibaroDevice.properties.unit
 
-    -- initialize subtype 
-    -- ToDo *** refactor with mappings?
-    if self:fibaroDeviceHasType("com.fibaro.temperatureSensor") then
+    -- identify subtype 
+    -- ToDo *** refactor with mappings for a bit higher performance?
+    if self:fibaroDeviceTypeMatchesWith("com.fibaro.temperatureSensor") then
         self.subtype = "temperature"
         self.bridgeUnitOfMeasurement = "°" .. fibaroDevice.properties.unit
         self.icon = "&#127777;&#65039;" -- 🌡️
-    elseif self:fibaroDeviceHasType("com.fibaro.lightSensor") then
+    elseif self:fibaroDeviceTypeMatchesWith("com.fibaro.lightSensor") then
         self.subtype = "illuminance"
         self.icon = "&#9728;&#65039;" -- ☀️
-    elseif self:fibaroDeviceHasType("com.fibaro.humiditySensor") then 
+    elseif self:fibaroDeviceTypeMatchesWith("com.fibaro.humiditySensor") then 
         self.subtype = "humidity"
         self.icon = "&#128167;" -- 💧
-    elseif self:fibaroDeviceHasType("com.fibaro.batteryLevelSensor") then 
+    elseif self:fibaroDeviceTypeMatchesWith("com.fibaro.batteryLevelSensor") then 
         self.subtype = "battery"
         self.icon = "&#128267;" -- 🔋
-    elseif self:fibaroDeviceHasType("com.fibaro.energySensor")then 
+    elseif self:fibaroDeviceTypeMatchesWith("com.fibaro.energySensor") or self:fibaroDeviceTypeMatchesWith("com.fibaro.energyMeter") or self:fibaroDeviceTypeMatchesWith("com.fibaro.electricMeter") then 
         self.subtype = "energy"
         self.icon = "&#9889;" -- ⚡
-    elseif self:fibaroDeviceHasType("com.fibaro.powerMeter") then 
+    elseif self:fibaroDeviceTypeMatchesWith("com.fibaro.powerMeter") then 
         self.subtype = "power"
         self.icon = "&#9889;" -- ⚡
     elseif (fibaroDevice.properties.unit == "V") then
@@ -308,7 +307,9 @@ function MultilevelSensor:init(fibaroDevice)
         self.subtype = "frequency"
         self.icon = "&#8767;" -- ∿
     else
-        --print("[MultilevelSensor.init] No sensor specialization for #" .. tostring(self.id) .. " \"" .. tostring(self.name) .. "\" that has type " .. fibaroDevice.baseType .. "-" .. fibaroDevice.type .. " and measured in '" .. tostring(fibaroDevice.properties.unit) .. "' unit, thus using default sensor class")
+        -- use generic sensor 
+
+        -- DEBUG: print("[MultilevelSensor.init] No sensor specialization for #" .. tostring(self.id) .. " \"" .. tostring(self.name) .. "\" that has type " .. fibaroDevice.baseType .. "-" .. fibaroDevice.type .. " and measured in '" .. tostring(fibaroDevice.properties.unit) .. "' unit, thus using default sensor class")
     end
 end
 
@@ -323,7 +324,7 @@ Cover.supportsRead = true
 Cover.supportsWrite = true
 
 function Cover.isSupported(fibaroDevice)
-    if fibaroDeviceHasType(fibaroDevice, "com.fibaro.baseShutter") or fibaroDeviceHasType(fibaroDevice, "com.fibaro.remoteBaseShutter") then
+    if fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.baseShutter") or fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.remoteBaseShutter") then
         return true
     else 
         return false
@@ -425,6 +426,7 @@ RemoteControllerKey.supportsMultilevel = false
 RemoteControllerKey.supportsRead = true
 RemoteControllerKey.supportsWrite = false
 RemoteControllerKey.icon = "&#9654;&#65039;" -- ▶️
+--RemoteControllerKey.icon = "&#128377;&#65039;" -- 🕹️
 
 function RemoteControllerKey.isSupported(fibaroDevice)
     if (fibaroDevice.baseType == "com.alexander_vitishchenko.remoteKey") then
@@ -452,9 +454,9 @@ haEntityTypeMappings = {
     Rgbw, -- multichannel
 
     -- Sensors
-    MultilevelSensor,
     BinarySensor,
-
+    MultilevelSensor,
+   
     Thermostat,
 
     RemoteController,

@@ -9,6 +9,9 @@ allFibaroDevicesAmount = 0
 filteredFibaroDevicesAmount = 0
 identifiedHaEntitiesAmount = 0
 
+__allFibaroDevices = nil
+__filteredFibaroDeviceIds = nil
+
 -----------------------------------
 --  FIBARO DEVICE TYPE CUSTOM MAPPINGS 
 -----------------------------------
@@ -73,17 +76,129 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
     end
 
 
-    local allFibaroDevices = api.get("/devices")
-    allFibaroDevicesAmount = #allFibaroDevices
+    __allFibaroDevices = api.get("/devices")
+    allFibaroDevicesAmount = #__allFibaroDevices
 
-    local filteredFibaroDeviceIds = api.post( 
+    __filteredFibaroDeviceIds = api.post( 
         "/devices/filter", 
         deviceFilter
     )
-    filteredFibaroDevicesAmount = #filteredFibaroDeviceIds
+    filteredFibaroDevicesAmount = #__filteredFibaroDeviceIds
 
     ----------- SIMULATED ZIGBEE RGBW DEVICE
-    --addSimulatedDevice(allFibaroDevices, filteredFibaroDeviceIds, "{\
+    --addSimulatedDevice("{\
+  \"id\": 35,\
+  \"name\": \"Levá\",\
+  \"roomID\": 223,\
+  \"view\": [\
+    {\
+      \"assetsPath\": \"dynamic-plugins/com.fibaro.baseShutter\",\
+      \"name\": \"com.fibaro.baseShutter\",\
+      \"translatesPath\": \"/assets/i18n/com.fibaro.baseShutter\",\
+      \"type\": \"ts\"\
+    },\
+    {\
+      \"assetsPath\": \"\",\
+      \"name\": \"base-slats\",\
+      \"translatesPath\": \"/assets/i18n/base-slats\",\
+      \"type\": \"ts\"\
+    },\
+    {\
+      \"assetsPath\": \"dynamic-plugins/favorite-positions\",\
+      \"name\": \"favorite-positions\",\
+      \"translatesPath\": \"/assets/i18n/favorite-positions\",\
+      \"type\": \"ts\"\
+    }\
+  ],\
+  \"type\": \"com.fibaro.baseShutter\",\
+  \"baseType\": \"com.fibaro.actor\",\
+  \"enabled\": true,\
+  \"visible\": true,\
+  \"isPlugin\": false,\
+  \"parentId\": 34,\
+  \"viewXml\": false,\
+  \"hasUIView\": true,\
+  \"configXml\": false,\
+  \"interfaces\": [\
+    \"baseSlats\",\
+    \"elero\",\
+    \"eleroBidi\",\
+    \"favoritePosition\",\
+    \"notification\"\
+  ],\
+  \"properties\": {\
+    \"categories\": [\
+      \"blinds\"\
+    ],\
+    \"configuration\": true,\
+    \"dead\": false,\
+    \"deadReason\": \"\",\
+    \"deviceControlType\": 55,\
+    \"deviceIcon\": 237,\
+    \"deviceRole\": \"VenetianBlinds\",\
+    \"deviceState\": \"Configured\",\
+    \"favoritePositions\": [\
+      {\
+        \"label\": \"stínění\",\
+        \"name\": \"FavoritePosition1\",\
+        \"value\": 50\
+      },\
+      {\
+        \"label\": \"naklopení\",\
+        \"name\": \"FavoritePosition2\",\
+        \"value\": 50\
+      }\
+    ],\
+    \"favoritePositionsNativeSupport\": true,\
+    \"icon\": {\
+      \"path\": \"/assets/icon/fibaro/shutter_dark/shutter_darkClosed.png\",\
+      \"source\": \"HC\"\
+    },\
+    \"log\": \"\",\
+    \"logTemp\": \"\",\
+    \"macAddress\": 7256875,\
+    \"manufacturer\": \"ELERO\",\
+    \"markAsDead\": true,\
+    \"model\": \"JA Comfort 868\",\
+    \"niceId\": 8,\
+    \"niceProtocol\": \"EleroBidiPln2\",\
+    \"saveLogs\": true,\
+    \"state\": \"Closed\",\
+    \"supportedDeviceRoles\": [\
+      \"VenetianBlinds\"\
+    ],\
+    \"supportedNotifications\": {\
+      \"1\": {\
+        \"eventValues\": {\
+          \"1\": {\
+            \"key\": \"ETX_ALERT_OVERTEMPERATURE\",\
+            \"saveToPanel\": true\
+          },\
+          \"2\": {\
+            \"key\": \"ETX_ALERT_BLOCKED\",\
+            \"saveToPanel\": true\
+          }\
+        },\
+        \"key\": \"ETX_ALERT\"\
+      }\
+    },\
+    \"userDescription\": \"\"\
+  },\
+  \"actions\": {\
+    \"close\": 0,\
+    \"open\": 0,\
+    \"rotateSlatsDown\": 0,\
+    \"rotateSlatsUp\": 0,\
+    \"setFavoritePosition\": 1,\
+    \"stop\": 0,\
+    \"stopSlats\": 0\
+  },\
+  \"created\": 1665691054,\
+  \"modified\": 1677785015,\
+  \"sortOrder\": 21\
+}")
+
+    --addSimulatedDevice("{\
   \"id\": 237,\
   \"name\": \"237\",\
   \"roomID\": 219,\
@@ -130,7 +245,7 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
   \"modified\": 1673281514,\
   \"sortOrder\": 110\
 }")
-    --addSimulatedDevice(allFibaroDevices, filteredFibaroDeviceIds, "{\
+    --addSimulatedDevice("{\
   \"id\": 238,\
   \"name\": \"Nightlight RGB\",\
   \"roomID\": 230,\
@@ -202,7 +317,7 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
   \"modified\": 1674037508,\
   \"sortOrder\": 111\
 }")
-    --addSimulatedDevice(allFibaroDevices, filteredFibaroDeviceIds, "{\
+    --addSimulatedDevice"{\
   \"id\": 46,\
   \"name\": \"VR baie vitrée\",\
   \"roomID\": 221,\
@@ -252,7 +367,7 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
   \"modified\": 1671310430,\
   \"sortOrder\": 23\
 }")
-    --addSimulatedDevice(allFibaroDevices, filteredFibaroDeviceIds, "{\
+    --addSimulatedDevice("{\
   \"id\": 34,\
   \"name\": \"VR baie vitrée\",\
   \"roomID\": 221,\
@@ -366,13 +481,13 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
     )
 
     ----------- BUILD FIBARO DEVICE HIERARCHY
-    for i=1, #allFibaroDevices do
-        appendNodeByFibaroDevice(allFibaroDevices[i], false)
+    for i=1, #__allFibaroDevices do
+        appendNodeByFibaroDevice(__allFibaroDevices[i], false)
     end
 
     -- DO PERFORMANCE HEAVY OPERATIONS ONLY FOR DEVICES THAT ARE IN FILTER SCOPE
-    for i=1, #filteredFibaroDeviceIds do
-        local fibaroDeviceId = filteredFibaroDeviceIds[i].id
+    for i=1, #__filteredFibaroDeviceIds do
+        local fibaroDeviceId = __filteredFibaroDeviceIds[i].id
         local deviceNode = deviceNodeById[fibaroDeviceId]
 
         local fibaroDevice = deviceNode.fibaroDevice
@@ -390,18 +505,18 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
     return deviceHierarchyRootNode
 end
 
-function addSimulatedDevice(allFibaroDevices, filteredFibaroDeviceIds, fibaroDeviceJsonStr)
+function addSimulatedDevice(fibaroDeviceJsonStr)
     local fibaroDevice = json.decode(fibaroDeviceJsonStr)
     fibaroDevice.id = fibaroDevice.id + 20000
     if fibaroDevice.parentId > 10 then
         fibaroDevice.parentId = fibaroDevice.parentId + 20000
     end
     
-    table.insert(allFibaroDevices, fibaroDevice)
-    table.insert(filteredFibaroDeviceIds, { id = fibaroDevice.id })
+    table.insert(__allFibaroDevices, fibaroDevice)
+    table.insert(__filteredFibaroDeviceIds, { id = fibaroDevice.id })
 
-    allFibaroDevicesAmount = #allFibaroDevices
-    filteredFibaroDevicesAmount = #filteredFibaroDeviceIds
+    allFibaroDevicesAmount = #__allFibaroDevices
+    filteredFibaroDevicesAmount = #__filteredFibaroDeviceIds
 end
 
 ----------- CREATE POWER, ENERGY & BATTERLY LEVEL SENSORS INSTEAD OF RELYING ON ATTRIBUTES WITHIN A SINGLE DEVICE
@@ -424,6 +539,7 @@ function __checkAndAppendLinkedDevices(fibaroDevice)
 
     -- Battery powered device? Create a dedicated battery sensor for Home Assistant
     if (table_contains_value(fibaroDevice.interfaces, "battery")) then
+        -- *** check for duplicates and skip if appropriate
         local sensor = createLinkedMultilevelSensorDevice(fibaroDevice, "batteryLevel")
         appendNodeByFibaroDevice(sensor, true)
     end
@@ -573,20 +689,14 @@ function enrichFibaroDeviceWithMetaInfo(fibaroDevice)
     return fibaroDevice
 end
 
-function fibaroDeviceHasType(fibaroDevice, type)
+function fibaroDeviceTypeContains(fibaroDevice, type)
+    return string.find(fibaroDevice.baseType, type) or string.find(fibaroDevice.type, type)
+end
+function fibaroDeviceTypeMatchesWith(fibaroDevice, type)
     return (fibaroDevice.baseType == type) or (fibaroDevice.type == type)
 end
-
-function fibaroDeviceHasNoType(fibaroDevice, type)
-    return not fibaroDeviceHasType(fibaroDevice, type)
-end
-
 function fibaroDeviceHasInterface(fibaroDevice, interface)
     return table_contains_value(fibaroDevice.interfaces, interface)
-end
-
-function fibaroDeviceHasNoInterface(fibaroDevice, interface)
-    return not fibaroDeviceHasInterface(fibaroDevice, interface)
 end
 
 -- *** rename to __identifyDeviceNodeAndItsChildren
@@ -719,6 +829,7 @@ function createLinkedKey(fromDevice, keyId, keyAttribute)
     --local newFibaroKey = createLinkedFibaroDevice(fromDevice, "value", nil)
     local newFibaroKey = createLinkedFibaroDevice(fromDevice, action, nil)
     newFibaroKey.baseType = "com.alexander_vitishchenko.remoteKey"
+    newFibaroKey.type = newFibaroKey.baseType
     newFibaroKey.keyId = keyId
     newFibaroKey.keyAttribute = keyAttribute
 
