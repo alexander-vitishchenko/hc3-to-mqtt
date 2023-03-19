@@ -347,3 +347,18 @@ function getCompositeQuickAppVariable(quickApp, variableName)
 
     return compositeValue
 end
+
+errorCacheMap = { }
+errorCacheTimeout = 60
+function logWithoutRepetableWarnings(data)
+    -- filter out repeatable errors
+    local lastErrorReceivedTimestamp = errorCacheMap[data.status]
+    local currentTimestamp = os.time()
+    if ((not lastErrorReceivedTimestamp) or (lastErrorReceivedTimestamp < (currentTimestamp - errorCacheTimeout))) then
+        print("Unexpected response status \"" .. tostring(data.status) .. "\", muting any repeated warnings for " .. errorCacheTimeout .. " seconds")
+        print("Full response body: " .. json.encode(data))
+
+        -- mute repeatable warnings temporary (avoid spamming to logs)
+        errorCacheMap[data.status] = currentTimestamp
+    end
+end

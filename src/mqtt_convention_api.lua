@@ -19,11 +19,11 @@ function MqttConventionPrototype:onDeviceNodeRemoved(deviceNode)
     error("function is mandatory for implementation")
 end
 
-function MqttConventionPrototype:onPropertyUpdated(deviceNode, event)
+function MqttConventionPrototype:onFibaroEvent(deviceNode, event)
     error("function is mandatory for implementation")
 end
 
-function MqttConventionPrototype:onCommand(event)
+function MqttConventionPrototype:onHomeAssistantEvent(event)
     error("function is mandatory for implementation")
 end
 
@@ -38,26 +38,31 @@ MqttConventionHomeAssistant = inheritFrom(MqttConventionPrototype)
 MqttConventionHomeAssistant.type = "Home Assistant"
 MqttConventionHomeAssistant.rootTopic = "homeassistant/"
 
+MqttConventionHomeAssistant.events = "events"
+MqttConventionHomeAssistant.fibaroToHomeAssistantEventTopic = "fibaro => home assistant"
+MqttConventionHomeAssistant.HomeAssistantToFibaroEventTopic = "home assistant => fibaro"
+
+
 -- TOPICS 
 function MqttConventionHomeAssistant:getDeviceTopic(haEntity)
     return self.rootTopic .. tostring(haEntity.type) .. "/" .. haEntity.id .. "/"
 end
 function MqttConventionHomeAssistant:getGenericEventTopic(haEntity, eventType, propertyName) 
     if (propertyName) then
-        return self:getDeviceTopic(haEntity) .. "events/" .. eventType .. "/" .. propertyName 
+        return self:getDeviceTopic(haEntity) .. self.events .. "/" .. eventType .. "/" .. propertyName 
     else
-        return self:getDeviceTopic(haEntity) .. "events/" .. eventType
+        return self:getDeviceTopic(haEntity) .. self.events .. "/" .. eventType
     end
 end
 function MqttConventionHomeAssistant:getterTopic(haEntity, propertyName)
     if (haEntity.linkedEntity and propertyName == "value") then
-        local result = self:getGenericEventTopic(haEntity.linkedEntity, "DevicePropertyUpdatedEvent", haEntity.linkedProperty)
+        local result = self:getGenericEventTopic(haEntity.linkedEntity, self.fibaroToHomeAssistantEventTopic, haEntity.linkedProperty)
         return result
     elseif (haEntity.linkedEntity and propertyName == "dead") then 
-        local result = self:getGenericEventTopic(haEntity.linkedEntity, "DevicePropertyUpdatedEvent", "dead")
+        local result = self:getGenericEventTopic(haEntity.linkedEntity, self.fibaroToHomeAssistantEventTopic, "dead")
         return result
     else
-        return self:getGenericEventTopic(haEntity, "DevicePropertyUpdatedEvent", propertyName)
+        return self:getGenericEventTopic(haEntity, self.fibaroToHomeAssistantEventTopic, propertyName)
     end
 end
 function MqttConventionHomeAssistant:getGenericCommandTopic(haEntity, command, propertyName) 
@@ -69,7 +74,7 @@ function MqttConventionHomeAssistant:getGenericCommandTopic(haEntity, command, p
 end
 
 function MqttConventionHomeAssistant:setterTopic(haEntity, propertyName)
-    return self:getGenericCommandTopic(haEntity, "set", propertyName)
+    return self:getGenericCommandTopic(haEntity, self.events .. "/" .. self.HomeAssistantToFibaroEventTopic, propertyName)
 end
 
 function MqttConventionHomeAssistant:getLastWillAvailabilityTopic()
@@ -89,7 +94,7 @@ end
 function MqttConventionHomeAssistant:onConnected()
     self.mqtt:publish(self:getLastWillAvailabilityTopic(), "online", {retain = true})
 
-    self.mqtt:subscribe(self.rootTopic .. "+/+/set/+")
+    self.mqtt:subscribe(self.rootTopic .. "+/+/events/" .. self.HomeAssistantToFibaroEventTopic .. "/+")
 end
 
 function MqttConventionHomeAssistant:onDisconnected()
@@ -167,10 +172,7 @@ function MqttConventionHomeAssistant:onDeviceNodeCreated(deviceNode)
             msg.brightness_state_topic = self:getterTopic(haEntity, "value")
             msg.brightness_value_template = "{{ value_json.value }}"
         elseif (haEntity.type == "cover") then
-            -- Home Assistant to interpret state from "position_topic"
-            msg.state_topic = nil
-
-            msg.position_topic = self:getterTopic(haEntity, "value")
+            -- ignore / and use cover specific logic in the section below
         elseif (haEntity.type == "sensor") then
             msg.state_topic = self:getterTopic(haEntity, "value")
             msg.value_template = "{{ value_json.value }}"
@@ -192,26 +194,6 @@ function MqttConventionHomeAssistant:onDeviceNodeCreated(deviceNode)
             msg.brightness_command_topic = self:setterTopic(haEntity, "value")
             msg.brightness_scale = 99
             msg.on_command_type = "first"
-        elseif (haEntity.type == "cover") then
-            msg.set_position_topic = self:setterTopic(haEntity, "value")
-            msg.position_template = "{{ value_json.value }}"
-            -- value_template is deprecated since Home Assistant Core 2021.6. 
-            msg.value_template = nil
-            msg.position_open = 100
-            msg.position_closed = 0
-
-            msg.payload_open = "open"
-            msg.payload_close = "close"
-            msg.payload_stop = "stop"
-
-            --[[
-            msg.state_closed = "closed"
-            msg.state_closing = "closing"
-            msg.state_open = "open"
-            msg.state_opening = "opening"
-            ]]--
-
-            msg.state_topic = self:setterTopic(haEntity, "state")
         end
     end
 
@@ -250,9 +232,10 @@ function MqttConventionHomeAssistant:onDeviceNodeCreated(deviceNode)
     ------------------------------------------
     -- *** ADD SUPPORT FOR COOLING MODE IN THE FUTURE
     if (haEntity.type == "climate") then
-        -- **** refactor
-        msg.modes = deviceNode.identifiedHaEntity.properties.supportedThermostatModes
-        --msg.modes = deviceNode.fibaroDevice.properties.supportedThermostatModes
+        msg.modes = { }
+        for i, mode in ipairs(deviceNode.fibaroDevice.properties.supportedThermostatModes) do
+            table.insert(msg.modes, string.lower(mode))
+        end
  
         msg.temperature_unit = deviceNode.fibaroDevice.properties.unit
         msg.temp_step = deviceNode.fibaroDevice.properties.heatingThermostatSetpointStep[msg.temperature_unit]
@@ -260,6 +243,9 @@ function MqttConventionHomeAssistant:onDeviceNodeCreated(deviceNode)
         -- MODE 
         msg.mode_state_topic = self:getterTopic(haEntity, "thermostatMode")
         msg.mode_command_topic = self:setterTopic(haEntity, "thermostatMode")
+
+        msg.mode_state_template = "{{ value_json.value | lower }}"
+        msg.mode_command_template = "{{ value | capitalize }}"
 
         -- *** 
         -- MIX/MAX TEMPERATURE
@@ -274,6 +260,33 @@ function MqttConventionHomeAssistant:onDeviceNodeCreated(deviceNode)
         local temperatureSensorEntity = haEntity:getTemperatureSensor()
         if temperatureSensorEntity then 
             msg.current_temperature_topic = self:getterTopic(temperatureSensorEntity, "value")
+        end
+    end
+
+    ------------------------------------------
+    ---- COVER
+    ------------------------------------------
+    if haEntity.type == "cover" then
+        msg.state_topic = self:setterTopic(haEntity, "state")
+
+        if haEntity.supportsMultilevel then
+            msg.position_topic = self:getterTopic(haEntity, "value")
+            msg.position_template = "{{ value_json.value }}"
+
+            msg.set_position_topic = self:setterTopic(haEntity, "value")
+
+            msg.position_open = 100
+            msg.position_closed = 0
+        end
+
+        if haEntity.supportsOpen or haEntity.supportsClose or haEntity.supportsStop then
+            msg.command_topic = self:setterTopic(haEntity, "action")
+            msg.payload_open = "open"
+            msg.payload_close = "close"
+            msg.payload_stop = "stop"
+
+            msg.state_open = "Open"
+            msg.state_closed = "Closed"
         end
     end
 
@@ -341,12 +354,12 @@ function MqttConventionHomeAssistant:onDeviceNodeRemoved(deviceNode)
     )
 end
 
-function MqttConventionHomeAssistant:onPropertyUpdated(deviceNode, event)
+function MqttConventionHomeAssistant:onFibaroEvent(deviceNode, event)
     local haEntity = deviceNode.identifiedHaEntity
 
     local propertyName = event.data.property
 
-    local value = event.data.newValue
+    local value = tostring(event.data.newValue)
 
     -------------------------------------------
     -- REMOTE CONTROLLER (SENSOR) SPECIFIC
@@ -361,7 +374,7 @@ function MqttConventionHomeAssistant:onPropertyUpdated(deviceNode, event)
         value = keyId .. "-" .. keyType
     end
     
-    value = string.lower(value)
+    --value = string.lower(value)
 
     local payload = {
         id = haEntity.id,
@@ -374,31 +387,33 @@ function MqttConventionHomeAssistant:onPropertyUpdated(deviceNode, event)
 
     local payloadString = json.encode(payload)
 
-    self.mqtt:publish(self:getterTopic(haEntity, propertyName), payloadString, {retain = true})
+    local retainFlag
+    if event.data.doNotRetain then
+        retainFlag = false
+    else
+        retainFlag = true
+    end
+
+    self.mqtt:publish(self:getterTopic(haEntity, propertyName), payloadString, {retain = retainFlag})
 end
 
-function MqttConventionHomeAssistant:onCommand(event)
+function MqttConventionHomeAssistant:onHomeAssistantEvent(event)
     if (string.find(event.topic, self.rootTopic) == 1) then
         -- Home Assistant command detected
         local topicElements = splitString(event.topic, "/")
         local deviceId = tonumber(topicElements[3])
-        local propertyName = topicElements[5]
+        local propertyName = topicElements[6]
 
         local device = deviceNodeById[deviceId].identifiedHaEntity
 
-        local value = event.payload
+        local value = tostring(event.payload)
 
-        if (device.type == "climate") then
-            -- Fibaro HC3 uses first letter in upper case, and HA relies on lower case
-            -- *** rename to firstCharacter
-            local firstPart = string.upper(string.sub(value, 1, 1))
-            local secondPart = string.sub(value, 2, string.len(value))
-            value = firstPart .. secondPart
-        end
+        local params = splitStringToNumbers(value, ",")
 
-        device:setProperty(propertyName, value)
+        device:setProperty(propertyName, params)
     end
 end
+
 
 -----------------------------------
 -- HOMIE
@@ -521,7 +536,7 @@ end
 function MqttConventionHomie:onDeviceNodeRemoved(deviceNode)
 end
 
-function MqttConventionHomie:onPropertyUpdated(deviceNode, event)
+function MqttConventionHomie:onFibaroEvent(deviceNode, event)
     local propertyName = event.data.property
 
     local value = event.data.newValue
@@ -529,12 +544,13 @@ function MqttConventionHomie:onPropertyUpdated(deviceNode, event)
     -- *** rename device to haEntity
     local device = deviceNode.identifiedHaEntity
 
-    value = string.lower(value)
+    value = tostring(value)
+    --value = string.lower(value) 
 
     self.mqtt:publish(self:getDeviceTopic(device) .. "node/" .. propertyName, value, {retain = true})
 end
 
-function MqttConventionHomie:onCommand(event)
+function MqttConventionHomie:onHomeAssistantEvent(event)
     if (string.find(event.topic, self.rootTopic) == 1) then
         local topicElements = splitString(event.topic, "/")
         local deviceId = tonumber(topicElements[2])
@@ -559,11 +575,11 @@ function MqttConventionDebug:onDeviceNodeCreated(deviceNode)
 end
 function MqttConventionDebug:onDeviceNodeRemoved(deviceNode)
 end
-function MqttConventionDebug:onPropertyUpdated(deviceNode, event)
+function MqttConventionDebug:onFibaroEvent(deviceNode, event)
 end
 function MqttConventionDebug:onConnected()
 end
-function MqttConventionDebug:onCommand(event)
+function MqttConventionDebug:onHomeAssistantEvent(event)
 end
 function MqttConventionDebug:onDisconnected()
 end

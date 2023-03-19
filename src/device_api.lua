@@ -48,47 +48,33 @@ function PrototypeEntity:init(fibaroDevice)
     -- "init" function could be optionally overriden by subclasses implementation
 end 
 
-function PrototypeEntity:setProperty(propertyName, value)
-    if isEmptyString(value) then
-        return
-    end
+-- *** rename setProperty to process HA event
+function PrototypeEntity:setProperty(propertyName, params)
+    -- check if there is a custom property setter
 
-    local customPropertySetter
-    if (self.customPropertySetters ~= nil) then
-        customPropertySetter = self.customPropertySetters[propertyName]
-    end
+    -- DEFAULT PROPERTY SETTER
+    if propertyName == "state" then
+        local value = params[1]
 
-    if (customPropertySetter == nil) then
-        -- DEFAULT PROPERTY SETTER
-        if (propertyName == "state") then
-            if (value == "true") then
-                --print("Turn ON for device #" .. self.id)
-                fibaro.call(self.id, "turnOn")
-            elseif (value == "false") then
-                --print("Turn OFF for device #" .. self.id)
-                fibaro.call(self.id, "turnOff")
-            else
-                print("Unexpected value: " .. json.encode(event))
-            end
+        if (value == "true") then
+            print("Turn ON for device #" .. self.id)
+            fibaro.call(self.id, "turnOn")
+        elseif (value == "false") then
+            print("Turn OFF for device #" .. self.id)
+            fibaro.call(self.id, "turnOff")
         else
-            -- *** rename to firstCharacter
-            local firstPart = string.upper(string.sub(propertyName, 1, 1))
-            local secondPart = string.sub(propertyName, 2, string.len(propertyName))
-
-            local functionName = "set" .. firstPart .. secondPart
-            print("FUNCTION CALL: \"" .. functionName .. "\", with VALUE \"" .. value .. "\" for device #" .. self.id)
-
-            if (propertyName == "color") then
-                local newRgbw = splitStringToNumbers(value, ",")
-                fibaro.call(self.id, functionName, newRgbw[1], newRgbw[2], newRgbw[3], newRgbw[4])
-            else
-                fibaro.call(self.id, functionName, value)
-            end
+            print("Unexpected value: " .. json.encode(event))
         end
+    elseif propertyName == "action" then
+        fibaro.call(self.id, params[1])
     else
-        -- CUSTOM PROPERTY SETTER
-        print("[CUSTOM PROPERTY] SET \"" .. propertyName .. "\" to \"" .. value .. "\" for device #" .. self.id)
-        customPropertySetter(propertyName, value)
+        local firstPart = string.upper(string.sub(propertyName, 1, 1))
+        local secondPart = string.sub(propertyName, 2, string.len(propertyName))
+        local functionName = "set" .. firstPart .. secondPart
+
+        print("FUNCTION CALL: \"" .. functionName .. "\", with PARAMS \"" .. json.encode(params) .. "\" for device #" .. self.id)
+
+        fibaro.call(self.id, functionName, unpack(params))
     end
 end
 
@@ -99,9 +85,11 @@ function PrototypeEntity:fibaroDeviceTypeMatchesWith(type)
     return fibaroDeviceTypeMatchesWith(self.sourceDeviceNode.fibaroDevice, type)
 end
 function PrototypeEntity:fibaroDeviceHasInterface(interface)
-    return table_contains_value(self.sourceDeviceNode.fibaroDevice, interface)
+    return fibaroDeviceHasInterface(self.sourceDeviceNode.fibaroDevice, interface)
 end
-
+function PrototypeEntity:fibaroDeviceHasAction(action)
+    return fibaroDeviceHasAction(self.sourceDeviceNode.fibaroDevice, action)
+end
 -----------------------------------
 -- BINARY SWITCH
 -----------------------------------
@@ -318,10 +306,14 @@ end
 -----------------------------------
 Cover = inheritFrom(PrototypeEntity)
 Cover.type = "cover"
-Cover.supportsBinary = true
-Cover.supportsMultilevel = true
+Cover.supportsBinary = false
+Cover.supportsMultilevel = false
 Cover.supportsRead = true
 Cover.supportsWrite = true
+
+Cover.supportsOpen = false
+Cover.supportsClose = false
+Cover.supportsStop = false
 
 function Cover.isSupported(fibaroDevice)
     if fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.baseShutter") or fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.remoteBaseShutter") then
@@ -332,17 +324,17 @@ function Cover.isSupported(fibaroDevice)
 end
 
 function Cover:init(fibaroDevice) 
-    self.customPropertySetters = { }
-    self.customPropertySetters["state"] = function (propertyName, value) 
-        if (value == "open") then
-            fibaro.call(self.id, "setValue", 100)
-        elseif (value == "close") then
-            fibaro.call(self.id, "setValue", 0)
-        elseif (value == "stop") then
-            fibaro.call(self.id, "stop")
-        else
-            print("Unsupported command")
-        end
+    if self:fibaroDeviceHasAction("setValue") then
+        self.supportsMultilevel = true
+    end
+    if self:fibaroDeviceHasAction("open") then
+        self.supportsOpen = true
+    end
+    if self:fibaroDeviceHasAction("close") then
+        self.supportsClose = true
+    end
+    if self:fibaroDeviceHasAction("stop") then
+        self.supportsStop = true
     end
 end
 
@@ -362,15 +354,6 @@ function Thermostat.isSupported(fibaroDevice)
         return true 
     else 
         return false
-    end
-end
-
-function Thermostat:init(fibaroDevice) 
-    local fibaroDeviceProperties = self.sourceDeviceNode.fibaroDevice.properties
-    
-    self.properties.supportedThermostatModes = { }
-    for i, mode in ipairs(fibaroDeviceProperties.supportedThermostatModes) do
-        self.properties.supportedThermostatModes[i] = string.lower(mode)
     end
 end
 

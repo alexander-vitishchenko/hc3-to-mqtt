@@ -1,15 +1,16 @@
---[[ RELEASE NOTES FOR 1.0.221
-Summary: Broader support for energy meter devices
+--[[ RELEASE NOTES FOR 1.0.225
+Summary: Extended support for shutters/covers (experimental)
 
 Description:
-- Support for AEON Labs energy meters, and for other sensors that has "com.fibaro.energyMeter" or "com.fibaro.electricMeter" types
-- Further codebase maintainability and logging improvements, like for Binary vs Multilevel sensors detection algorithm
+- Added support for open/close actions while keeping the existion shutter position functionality
+- Further codebase maintainability and logging improvements
+- Grouping MQTT events by "Fibaro => Home Assistant" and "Home Assistant => Fibaro"
 ]]--
 
 function QuickApp:onInit()
     self:debug("")
     self:debug("------- HC3 <-> MQTT BRIDGE")
-    self:debug("Version: 1.0.221")
+    self:debug("Version: 1.0.225")
     self:debug("(!) IMPORTANT NOTE FOR THOSE USERS WHO USED THE QUICKAPP PRIOR TO 1.0.191 VERSION: Your Home Assistant dashboards and automations need to be reconfigured with new enity ids. This is a one-time effort that introduces a relatively \"small\" inconvenience for the greater good (a) introduce long-term stability so Home Assistant entity duplicates will not happen in certain scenarios (b) entity id namespaces are now syncronized between Fibaro and Home Assistant ecosystems")
 
     self:turnOn()
@@ -146,7 +147,7 @@ end
 
 function QuickApp:onMessage(event)
     for i, j in ipairs(self.mqttConventions) do
-        j:onCommand(event)
+        j:onHomeAssistantEvent(event)
     end
 end
 
@@ -180,7 +181,7 @@ function QuickApp:discoverDevicesAndPublishToMqtt()
     self:debug("Filtered Fibaro devices to           : " .. filteredFibaroDevicesAmount)
     self:debug("Number of Home Assistant entities    : " .. identifiedHaEntitiesAmount .. " => number of supported Fibaro devices + automatically generated entities for power, energy and battery sensors (when found appropriate interfaces for a Fibaro device) + automatically generated  remote controllers, where cartesian join is applied for each key and press types")
     self:debug("")
-    printDeviceNode(deviceHierarchyRootNode, 0)
+    printDeviceNodeHierarchy(deviceHierarchyRootNode, 0)
 
     phaseStartTime = os.time()
     self:publishDeviceNodeToMqtt(deviceHierarchyRootNode)
@@ -301,12 +302,8 @@ local lastRefresh = 0
 local http = net.HTTPClient()
 
 function QuickApp:scheduleHc3EventsFetcher()
-    self.errorCacheMap = { }
-    self.errorCacheTimeout = 60
     self.gotWarning = false
     
-    self.eventProcessorIsActive = false
-
     self:scheduleAnotherPollingForHc3()
 
     self:debug("")
@@ -336,9 +333,6 @@ end
 function QuickApp:readHc3EventAndScheduleFetcher()
     -- This a reliable and high-performance method to get events from Fibaro HC3, by using non-blocking HTTP calls
 
-    -- no 2+ jobs to be executed twice
-    self.eventProcessorIsActive = true
-
     local requestUrl = "http://127.0.0.1:11111/api/refreshStates?last=" .. lastRefresh
 
     local stat, res = http:request(
@@ -365,10 +359,6 @@ end
 function QuickApp:processFibaroHc3Events(data)
     self.gotWarning = false
 
-    --if not self.hc3ConnectionEnabled then
-    --    return
-    --end
-
     -- Simulate repeatable broken status
     --data.status = "STARTING_SERVICES"
 
@@ -378,16 +368,7 @@ function QuickApp:processFibaroHc3Events(data)
             data.status = "<unknown>"
         end
 
-        -- filter out repeatable errors
-        local lastErrorReceivedTimestamp = self.errorCacheMap[data.status]
-        local currentTimestamp = os.time()
-        if ((not lastErrorReceivedTimestamp) or (lastErrorReceivedTimestamp < (currentTimestamp - self.errorCacheTimeout))) then
-            self:warning("Unexpected response status \"" .. tostring(data.status) .. "\", muting any repeated warnings for " .. self.errorCacheTimeout .. " seconds")
-            self:trace("Full response body: " .. json.encode(data))
-
-            -- mute repeatable warnings temporary (avoid spamming to logs)
-            self.errorCacheMap[data.status] = currentTimestamp
-        end
+        logWithoutRepetableWarnings(data)
     end
 
     local events = data.events
@@ -448,6 +429,7 @@ function QuickApp:dispatchFibaroEventToMqtt(event)
             local haEntity = deviceNode.identifiedHaEntity
             if haEntity then
                 if (eventType == "DevicePropertyUpdatedEvent") then
+                    --self:trace(json.encode(event))
                     return self:dispatchDevicePropertyUpdatedEvent(deviceNode, event) 
                 elseif (eventType == "CentralSceneEvent") then
                     -- convert to DevicePropertyUpdatedEvent event, so we reuse the existing value dispatch mechanism rather than reinventing a wheel
@@ -455,6 +437,7 @@ function QuickApp:dispatchFibaroEventToMqtt(event)
                     self:trace("Action => " .. event.data.keyId .. "-" .. string.lower(event.data.keyAttribute))
                     return self:simulatePropertyUpdate(deviceNode, "value", keyValueMapAsString)
                 elseif (eventType == "DeviceModifiedEvent") then
+                    -- *** Investigate the reasons for duplicate events and try to prevent it from happening, so code below could be simplified
                     -- Fibaro generates "DeviceModifiedEvent" event after "DeviceCreatedEvent" => filter out the reduntant event 
                     
                     local deviceLastCreationTimestamp = deviceCreatedEventTimestamps[fibaroDeviceId]
@@ -470,6 +453,13 @@ function QuickApp:dispatchFibaroEventToMqtt(event)
                     end
                 elseif (eventType == "DeviceRemovedEvent") then 
                     return self:dispatchDeviceRemovedEvent(deviceNode)
+                elseif (eventType == "DeviceActionRanEvent") then 
+                    -- reuse the existing DevicePropertyUpdatedEvent processing logic
+                    event.data.property = "action"
+                    event.data.newValue = event.data.actionName
+                    event.data.doNotRetain = true
+                    
+                    return self:dispatchDevicePropertyUpdatedEvent(deviceNode, event) 
                 else
                     -- unsupported event type => ignore
                     return
@@ -506,7 +496,6 @@ function QuickApp:dispatchFibaroEventToMqtt(event)
 end
 
 function QuickApp:dispatchDevicePropertyUpdatedEvent(deviceNode, event)
-    -- *** OVERRIDE FIBARO PROPERTY NAMES, FOR BEING MORE CONSISTENT AND THUS EASIER TO HANDLE 
     local haEntity = deviceNode.identifiedHaEntity
     local propertyName = event.data.property
     if not propertyName then
@@ -514,10 +503,11 @@ function QuickApp:dispatchDevicePropertyUpdatedEvent(deviceNode, event)
     end
 
     if (haEntity.type == "binary_sensor") and (propertyName == "value") then
-        -- Fibaro uses state/value fields inconsistently for binary sensor. Replace value --> state field
+        -- Fibaro uses state/value fields inconsistently for binary sensors. Replace value --> state field
         event.data.property = "state"
     end
 
+    -- round numbers
     local value = event.data.newValue
     if (isNumber(value)) then
         value = round(value, 2)
@@ -526,7 +516,7 @@ function QuickApp:dispatchDevicePropertyUpdatedEvent(deviceNode, event)
     event.data.newValue = (type(value) == "number" and value or tostring(value))
     
     for i, j in ipairs(self.mqttConventions) do
-        j:onPropertyUpdated(deviceNode, event)
+        j:onFibaroEvent(deviceNode, event)
     end
 end
 
@@ -545,7 +535,7 @@ function QuickApp:dispatchDeviceCreatedEvent(fibaroDeviceId)
         
         self:__publishDeviceProperties(newDeviceNode.fibaroDevice)
 
-        printDeviceNode(newDeviceNode, 1)
+        printDeviceNodeHierarchy(newDeviceNode, 1)
     else
         self:debug("New device " .. newDeviceNode.id .. " will not be added")
     end

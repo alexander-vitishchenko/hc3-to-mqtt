@@ -86,7 +86,7 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
     filteredFibaroDevicesAmount = #__filteredFibaroDeviceIds
 
     ----------- SIMULATED ZIGBEE RGBW DEVICE
-    --addSimulatedDevice("{\
+    addSimulatedDevice("{\
   \"id\": 35,\
   \"name\": \"Levá\",\
   \"roomID\": 223,\
@@ -496,7 +496,6 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
         deviceNode.included = true
 
         ----------- CREATE POWER, ENERGY & BATTERLY LEVEL SENSORS INSTEAD OF RELYING ON ATTRIBUTES WITHIN A SINGLE DEVICE
-        -- *** refactor "check" naming
         __checkAndAppendLinkedDevices(fibaroDevice)
     end
 
@@ -539,7 +538,6 @@ function __checkAndAppendLinkedDevices(fibaroDevice)
 
     -- Battery powered device? Create a dedicated battery sensor for Home Assistant
     if (table_contains_value(fibaroDevice.interfaces, "battery")) then
-        -- *** check for duplicates and skip if appropriate
         local sensor = createLinkedMultilevelSensorDevice(fibaroDevice, "batteryLevel")
         appendNodeByFibaroDevice(sensor, true)
     end
@@ -697,6 +695,9 @@ function fibaroDeviceTypeMatchesWith(fibaroDevice, type)
 end
 function fibaroDeviceHasInterface(fibaroDevice, interface)
     return table_contains_value(fibaroDevice.interfaces, interface)
+end
+function fibaroDeviceHasAction(fibaroDevice, action)
+    return (fibaroDevice.actions[action] ~= nil)
 end
 
 -- *** rename to __identifyDeviceNodeAndItsChildren
@@ -869,7 +870,7 @@ function getDeviceDescriptionById(fibaroDeviceId)
     return description
 end
 
-function printDeviceNode(deviceNode, level)
+function printDeviceNodeHierarchy(deviceNode, level)
     local deviceDescription = ""
 
     local lastSiblingNode
@@ -951,7 +952,9 @@ function printDeviceNode(deviceNode, level)
         end
     else
         -- 🛇
-        deviceDescription = deviceDescription .. bracketStart .. "&#128711;" .. bracketEnd .. " "
+        --deviceDescription = deviceDescription .. bracketStart .. "&#128711;" .. bracketEnd .. " "
+        -- -
+        deviceDescription = deviceDescription .. bracketStart .. "-" .. bracketEnd .. " "
     end
 
     local fibaroDevice = deviceNode.fibaroDevice
@@ -977,7 +980,7 @@ function printDeviceNode(deviceNode, level)
     end
 
     for _, deviceChildNode in pairs(deviceNode.childNodeList) do
-        printDeviceNode(deviceChildNode, level + 1)
+        printDeviceNodeHierarchy(deviceChildNode, level + 1)
     end
 
 end
