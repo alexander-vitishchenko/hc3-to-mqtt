@@ -8,10 +8,10 @@ assignees: ''
 ---
 
 **How do you expect your Fibaro device to be rendered in Home Assistant UI?**
-A clear and concise description.
+[...]
 
 **How do you plan to control the state of your Fibaro device from Home Assistant UI?**
-A clear and concise description.
+[...]
 
 **Fibaro device signature (JSON file)**
 - Open Fibaro Home Center 3 in a web-browser
