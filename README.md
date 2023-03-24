@@ -87,7 +87,8 @@ Note: I'm using my mother's PayPal (Tatjana H.) to support both project and my p
             </li>
           </ul>
       </li>
-      <li>Submit JSON + screenshots, along with the device importance description <a href="https://github.com/alexander-vitishchenko/hc3-to-mqtt/issues/new/choose">here</a></li>
+      <li>Prepare a few sentence description and examples how you want to use Fibaro device from Home Assistant UI</li>
+      <li>Submit the use-case descripton, JSON file(s) and screenshots, along with the device importance description <a href="https://github.com/alexander-vitishchenko/hc3-to-mqtt/issues/new/choose">here</a></li>
   </ul>
 
 </details>
