@@ -103,7 +103,7 @@ Switch.supportsWrite = true
 Switch.icon = "&#128268;" -- 🔌
 
 function Switch.isSupported(fibaroDevice)
-    if fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.binarySwitch") and (not fibaroDeviceHasInterface(fibaroDevice, "light")) then
+    if (fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.binarySwitch") or fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.soundSwitch")) and (not fibaroDeviceHasInterface(fibaroDevice, "light")) then
         return true
     else 
         return false
@@ -311,9 +311,10 @@ Cover.supportsMultilevel = false
 Cover.supportsRead = true
 Cover.supportsWrite = true
 
-Cover.supportsOpen = false
-Cover.supportsClose = false
-Cover.supportsStop = false
+-- Some of the Fibaro shutter devices do not advertise the possibility to use open/close/stop actions even if they do, so it is now always enabled
+Cover.supportsOpen = true
+Cover.supportsClose = true
+Cover.supportsStop = true
 
 function Cover.isSupported(fibaroDevice)
     if fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.baseShutter") or fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.remoteBaseShutter") then
@@ -327,6 +328,8 @@ function Cover:init(fibaroDevice)
     if self:fibaroDeviceHasAction("setValue") then
         self.supportsMultilevel = true
     end
+    --[[
+    -- Some of the Fibaro shutter devices do not advertise the possibility to use open/close/stop actions even if they do, so it is now always enabled
     if self:fibaroDeviceHasAction("open") then
         self.supportsOpen = true
     end
@@ -336,6 +339,7 @@ function Cover:init(fibaroDevice)
     if self:fibaroDeviceHasAction("stop") then
         self.supportsStop = true
     end
+    ]]--
 end
 
 -----------------------------------

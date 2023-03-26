@@ -85,8 +85,48 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
     )
     filteredFibaroDevicesAmount = #__filteredFibaroDeviceIds
 
+    if developmentMode then
+        __addSimulatedDevices()
+    end
+
+    ----------- PREPARE VIRTUAL ROOT NODE
+    deviceHierarchyRootNode = createUnidentifiedDeviceNode(
+        {
+            id = 0,
+            name = "Root device node",
+            parentId = nil,
+            roomId = nil,
+        }, 
+        false
+    )
+
+    ----------- BUILD FIBARO DEVICE HIERARCHY
+    for i=1, #__allFibaroDevices do
+        appendNodeByFibaroDevice(__allFibaroDevices[i], false)
+    end
+
+    -- DO PERFORMANCE HEAVY OPERATIONS ONLY FOR DEVICES THAT ARE IN FILTER SCOPE
+    for i=1, #__filteredFibaroDeviceIds do
+        local fibaroDeviceId = __filteredFibaroDeviceIds[i].id
+        local deviceNode = deviceNodeById[fibaroDeviceId]
+
+        local fibaroDevice = deviceNode.fibaroDevice
+
+        ----------- INCLUDE NODE WITH DEVICE MATCHING FILTER CRITERIA
+        deviceNode.included = true
+
+        ----------- CREATE POWER, ENERGY & BATTERLY LEVEL SENSORS INSTEAD OF RELYING ON ATTRIBUTES WITHIN A SINGLE DEVICE
+        __checkAndAppendLinkedDevices(fibaroDevice)
+    end
+
+    __identifyDeviceNode(deviceHierarchyRootNode)
+
+    return deviceHierarchyRootNode
+end
+
+function __addSimulatedDevices()
     ----------- SIMULATED ZIGBEE RGBW DEVICE
-    addSimulatedDevice("{\
+    __addSimulatedDevice("{\
   \"id\": 35,\
   \"name\": \"Levá\",\
   \"roomID\": 223,\
@@ -198,7 +238,266 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
   \"sortOrder\": 21\
 }")
 
-    --addSimulatedDevice("{\
+    __addSimulatedDevice("{\
+  \"id\": 999,\
+  \"name\": \"Signalizacija\",\
+  \"roomID\": 221,\
+  \"view\": [\
+    {\
+      \"assetsPath\": \"dynamic-plugins/com.fibaro.soundSwitch\",\
+      \"name\": \"com.fibaro.soundSwitch\",\
+      \"translatesPath\": \"/assets/i18n/com.fibaro.soundSwitch\",\
+      \"type\": \"ts\"\
+    }\
+  ],\
+  \"type\": \"com.fibaro.soundSwitch\",\
+  \"baseType\": \"com.fibaro.actor\",\
+  \"enabled\": true,\
+  \"visible\": true,\
+  \"isPlugin\": false,\
+  \"parentId\": 240,\
+  \"viewXml\": false,\
+  \"hasUIView\": false,\
+  \"configXml\": false,\
+  \"interfaces\": [\
+    \"fibaroFirmwareUpdate\",\
+    \"zwave\",\
+    \"zwaveAlarm\",\
+    \"zwaveMultiChannelAssociation\"\
+  ],\
+  \"properties\": {\
+    \"parameters\": [\
+      {\
+        \"id\": 50,\
+        \"lastReportedValue\": 0,\
+        \"lastSetValue\": 0,\
+        \"size\": 1,\
+        \"value\": 0\
+      },\
+      {\
+        \"id\": 51,\
+        \"lastReportedValue\": 1,\
+        \"lastSetValue\": 1,\
+        \"size\": 1,\
+        \"value\": 1\
+      }\
+    ],\
+    \"pollingTimeSec\": 0,\
+    \"zwaveCompany\": \"\",\
+    \"zwaveInfo\": \"3,5,3\",\
+    \"zwaveVersion\": \"1.5\",\
+    \"alarmLevel\": 0,\
+    \"alarmType\": 0,\
+    \"categories\": [\
+      \"lights\",\
+      \"remotes\",\
+      \"other\"\
+    ],\
+    \"configured\": true,\
+    \"dead\": false,\
+    \"deadReason\": \"\",\
+    \"defaultTone\": 6,\
+    \"deviceControlType\": 1,\
+    \"deviceIcon\": 203,\
+    \"deviceRole\": \"Other\",\
+    \"endPointId\": 0,\
+    \"firmwareUpdate\": {\
+      \"info\": \"\",\
+      \"progress\": 0,\
+      \"status\": \"UpToDate\",\
+      \"updateVersion\": \"1.5\"\
+    },\
+    \"icon\": {},\
+    \"log\": \"\",\
+    \"logTemp\": \"\",\
+    \"manufacturer\": \"\",\
+    \"markAsDead\": true,\
+    \"model\": \"\",\
+    \"nodeId\": 29,\
+    \"parametersTemplate\": \"0\",\
+    \"productInfo\": \"3,113,0,3,0,162,1,5\",\
+    \"saveLogs\": true,\
+    \"serialNumber\": \"h\'0c000100010109040700000303060700000000\",\
+    \"supportedDeviceRoles\": [\
+      \"Other\"\
+    ],\
+    \"supportedTones\": [\
+      {\
+        \"duration\": 5,\
+        \"name\": \"01 Ding Dong\",\
+        \"toneId\": 1\
+      },\
+      {\
+        \"duration\": 9,\
+        \"name\": \"02 Ding Dong Tubular\",\
+        \"toneId\": 2\
+      },\
+      {\
+        \"duration\": 10,\
+        \"name\": \"03 Traditional Apartment Buzzer\",\
+        \"toneId\": 3\
+      },\
+      {\
+        \"duration\": 1,\
+        \"name\": \"04 Electric Apartment Buzzer\",\
+        \"toneId\": 4\
+      },\
+      {\
+        \"duration\": 12,\
+        \"name\": \"05 Westminster Chimes\",\
+        \"toneId\": 5\
+      },\
+      {\
+        \"duration\": 7,\
+        \"name\": \"06 Chimes\",\
+        \"toneId\": 6\
+      },\
+      {\
+        \"duration\": 31,\
+        \"name\": \"07 Cuckoo\",\
+        \"toneId\": 7\
+      },\
+      {\
+        \"duration\": 6,\
+        \"name\": \"08 Traditional Bell\",\
+        \"toneId\": 8\
+      },\
+      {\
+        \"duration\": 11,\
+        \"name\": \"09 Smoke Alarm 1\",\
+        \"toneId\": 9\
+      },\
+      {\
+        \"duration\": 5,\
+        \"name\": \"10 Smoke Alarm 2\",\
+        \"toneId\": 10\
+      },\
+      {\
+        \"duration\": 35,\
+        \"name\": \"11 Fire Evacuation Buzzer\",\
+        \"toneId\": 11\
+      },\
+      {\
+        \"duration\": 4,\
+        \"name\": \"12 CO Sensor\",\
+        \"toneId\": 12\
+      },\
+      {\
+        \"duration\": 6,\
+        \"name\": \"13 Klaxon\",\
+        \"toneId\": 13\
+      },\
+      {\
+        \"duration\": 40,\
+        \"name\": \"14 Deep Klaxon\",\
+        \"toneId\": 14\
+      },\
+      {\
+        \"duration\": 37,\
+        \"name\": \"15 Warning Tone\",\
+        \"toneId\": 15\
+      },\
+      {\
+        \"duration\": 45,\
+        \"name\": \"16 Tornado Siren\",\
+        \"toneId\": 16\
+      },\
+      {\
+        \"duration\": 35,\
+        \"name\": \"17 Alarm\",\
+        \"toneId\": 17\
+      },\
+      {\
+        \"duration\": 62,\
+        \"name\": \"18 Deep Alarm\",\
+        \"toneId\": 18\
+      },\
+      {\
+        \"duration\": 15,\
+        \"name\": \"19 Alarm Archangel\",\
+        \"toneId\": 19\
+      },\
+      {\
+        \"duration\": 7,\
+        \"name\": \"20 Alarm Shrill\",\
+        \"toneId\": 20\
+      },\
+      {\
+        \"duration\": 8,\
+        \"name\": \"21 Digital Siren\",\
+        \"toneId\": 21\
+      },\
+      {\
+        \"duration\": 63,\
+        \"name\": \"22 Alert Series\",\
+        \"toneId\": 22\
+      },\
+      {\
+        \"duration\": 3,\
+        \"name\": \"23 Ship Bell\",\
+        \"toneId\": 23\
+      },\
+      {\
+        \"duration\": 9,\
+        \"name\": \"24 Clock Buzzer\",\
+        \"toneId\": 24\
+      },\
+      {\
+        \"duration\": 3,\
+        \"name\": \"25 Christmas Tree\",\
+        \"toneId\": 25\
+      },\
+      {\
+        \"duration\": 11,\
+        \"name\": \"26 Gong\",\
+        \"toneId\": 26\
+      },\
+      {\
+        \"duration\": 0,\
+        \"name\": \"27 Single Bell Ting\",\
+        \"toneId\": 27\
+      },\
+      {\
+        \"duration\": 11,\
+        \"name\": \"28 Tonal Pulse\",\
+        \"toneId\": 28\
+      },\
+      {\
+        \"duration\": 2,\
+        \"name\": \"29 Upwards Tone\",\
+        \"toneId\": 29\
+      },\
+      {\
+        \"duration\": 27,\
+        \"name\": \"30 Door Open\",\
+        \"toneId\": 30\
+      }\
+    ],\
+    \"tone\": 0,\
+    \"updateVersion\": \"\",\
+    \"useTemplate\": true,\
+    \"userDescription\": \"\",\
+    \"value\": false,\
+     \"volume\": 22\
+  },\
+  \"actions\": {\
+    \"abortUpdate\": 1,\
+    \"reconfigure\": 0,\
+    \"retryUpdate\": 1,\
+    \"setDefaultTone\": 1,\
+    \"setTone\": 1,\
+    \"setVolume\": 1,\
+    \"startUpdate\": 1,\
+    \"turnOff\": 0,\
+    \"turnOn\": 0,\
+    \"updateFirmware\": 1\
+  },\
+  \"created\": 1650042798,\
+  \"modified\": 1677956699,\
+  \"sortOrder\": 97\
+}")
+
+    --__addSimulatedDevice("{\
   \"id\": 237,\
   \"name\": \"237\",\
   \"roomID\": 219,\
@@ -245,7 +544,7 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
   \"modified\": 1673281514,\
   \"sortOrder\": 110\
 }")
-    --addSimulatedDevice("{\
+    --__addSimulatedDevice("{\
   \"id\": 238,\
   \"name\": \"Nightlight RGB\",\
   \"roomID\": 230,\
@@ -317,7 +616,7 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
   \"modified\": 1674037508,\
   \"sortOrder\": 111\
 }")
-    --addSimulatedDevice"{\
+    --__addSimulatedDevice"{\
   \"id\": 46,\
   \"name\": \"VR baie vitrée\",\
   \"roomID\": 221,\
@@ -367,7 +666,7 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
   \"modified\": 1671310430,\
   \"sortOrder\": 23\
 }")
-    --addSimulatedDevice("{\
+    --__addSimulatedDevice("{\
   \"id\": 34,\
   \"name\": \"VR baie vitrée\",\
   \"roomID\": 221,\
@@ -469,42 +768,9 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
   \"sortOrder\": 15\
 }")
 
-    ----------- PREPARE VIRTUAL ROOT NODE
-    deviceHierarchyRootNode = createUnidentifiedDeviceNode(
-        {
-            id = 0,
-            name = "Root device node",
-            parentId = nil,
-            roomId = nil,
-        }, 
-        false
-    )
-
-    ----------- BUILD FIBARO DEVICE HIERARCHY
-    for i=1, #__allFibaroDevices do
-        appendNodeByFibaroDevice(__allFibaroDevices[i], false)
-    end
-
-    -- DO PERFORMANCE HEAVY OPERATIONS ONLY FOR DEVICES THAT ARE IN FILTER SCOPE
-    for i=1, #__filteredFibaroDeviceIds do
-        local fibaroDeviceId = __filteredFibaroDeviceIds[i].id
-        local deviceNode = deviceNodeById[fibaroDeviceId]
-
-        local fibaroDevice = deviceNode.fibaroDevice
-
-        ----------- INCLUDE NODE WITH DEVICE MATCHING FILTER CRITERIA
-        deviceNode.included = true
-
-        ----------- CREATE POWER, ENERGY & BATTERLY LEVEL SENSORS INSTEAD OF RELYING ON ATTRIBUTES WITHIN A SINGLE DEVICE
-        __checkAndAppendLinkedDevices(fibaroDevice)
-    end
-
-    __identifyDeviceNode(deviceHierarchyRootNode)
-
-    return deviceHierarchyRootNode
 end
 
-function addSimulatedDevice(fibaroDeviceJsonStr)
+function __addSimulatedDevice(fibaroDeviceJsonStr)
     local fibaroDevice = json.decode(fibaroDeviceJsonStr)
     fibaroDevice.id = fibaroDevice.id + 20000
     if fibaroDevice.parentId > 10 then

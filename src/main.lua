@@ -1,16 +1,18 @@
---[[ RELEASE NOTES FOR 1.0.225
-Summary: Extended support for shutters/covers (experimental)
+--[[ RELEASE NOTES FOR 1.0.226
+Summary: Added support for sound switch (alarm), and extended support for shutters/covers (experimental)
 
 Description:
-- Added support for open/close actions while keeping the existion shutter position functionality
+- Added Aeotec sound switch (alarm) support
+- Enabled support for Fibaro shutters to use open/close/stop actions, even the device firmware misses to advertise the possibility these actions
 - Further codebase maintainability and logging improvements
-- Grouping MQTT events by "Fibaro => Home Assistant" and "Home Assistant => Fibaro"
 ]]--
+
+developmentMode = false
 
 function QuickApp:onInit()
     self:debug("")
     self:debug("------- HC3 <-> MQTT BRIDGE")
-    self:debug("Version: 1.0.225")
+    self:debug("Version: 1.0.226")
     self:debug("(!) IMPORTANT NOTE FOR THOSE USERS WHO USED THE QUICKAPP PRIOR TO 1.0.191 VERSION: Your Home Assistant dashboards and automations need to be reconfigured with new enity ids. This is a one-time effort that introduces a relatively \"small\" inconvenience for the greater good (a) introduce long-term stability so Home Assistant entity duplicates will not happen in certain scenarios (b) entity id namespaces are now syncronized between Fibaro and Home Assistant ecosystems")
 
     self:turnOn()
@@ -203,26 +205,17 @@ function QuickApp:discoverDeviceHierarchy()
     local developmentModeStr = self:getVariable("developmentMode")
     if ((not developmentModeStr) or (developmentModeStr ~= "true")) then
         self:debug("Bridge mode: PRODUCTION")
-
-        local customDeviceFilterJsonStr = getCompositeQuickAppVariable(self, "deviceFilter")
-        if (isEmptyString(customDeviceFilterJsonStr)) then
-            self:debug("All is good - default filter applied, where only enabled and visible devices are used")
-        end
-
-        fibaroDevices = getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
     else
-        -- smaller number of devices for development and testing purposes
-        self:debug("Bridge mode: DEVELOPMENT (temporary unsupported)")
-        --[[
-        fibaroDevices = {
-            enrichFibaroDeviceWithMetaInfo(
-                json.decode(
-                    "{  }"
-                )
-            ) 
-        }
-        ]]--
+        self:debug("Bridge mode: DEVELOPMENT")
+        developmentMode = true
     end
+
+    local customDeviceFilterJsonStr = getCompositeQuickAppVariable(self, "deviceFilter")
+    if (isEmptyString(customDeviceFilterJsonStr)) then
+        self:debug("All is good - default filter applied, where only enabled and visible devices are used")
+    end
+
+    fibaroDevices = getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
 
     return fibaroDevices
 end
@@ -379,7 +372,6 @@ function QuickApp:processFibaroHc3Events(data)
 
     if events and #events>0 then 
         for i, v in ipairs(events) do
-            -- *** rename dispatch to "PROCESS" / ename onDeviceCreated and so on => "dispatchToMqtt"
             self:dispatchFibaroEventToMqtt(v)
         end
     end
@@ -502,8 +494,14 @@ function QuickApp:dispatchDevicePropertyUpdatedEvent(deviceNode, event)
         propertyName = "unknown"
     end
 
-    if (haEntity.type == "binary_sensor") and (propertyName == "value") then
-        -- Fibaro uses state/value fields inconsistently for binary sensors. Replace value --> state field
+    if ((haEntity.type == "binary_sensor") or (haEntity.type == "switch"))
+           and 
+        (propertyName == "value") 
+    then
+        -- Fibaro uses state/value fields inconsistently for 
+        -- 1. binary sensors. Replace "value" with "state" field
+        -- 2. Sound switch (Aetec). Replace "value" with "state" field
+
         event.data.property = "state"
     end
 

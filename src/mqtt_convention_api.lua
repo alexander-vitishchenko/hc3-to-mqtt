@@ -374,8 +374,6 @@ function MqttConventionHomeAssistant:onFibaroEvent(deviceNode, event)
         value = keyId .. "-" .. keyType
     end
     
-    --value = string.lower(value)
-
     local payload = {
         id = haEntity.id,
         deviceName = haEntity.name,
