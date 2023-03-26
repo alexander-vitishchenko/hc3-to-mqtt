@@ -285,8 +285,10 @@ function MqttConventionHomeAssistant:onDeviceNodeCreated(deviceNode)
             msg.payload_close = "close"
             msg.payload_stop = "stop"
 
-            msg.state_open = "Open"
+            msg.state_open = "Opened"
             msg.state_closed = "Closed"
+            msg.state_opening = "Opening"
+            msg.state_closing = "Closing"
         end
     end
 

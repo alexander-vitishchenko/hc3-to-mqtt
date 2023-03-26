@@ -1,4 +1,4 @@
---[[ RELEASE NOTES FOR 1.0.226
+--[[ RELEASE NOTES FOR 1.0.227
 Summary: Added support for sound switch (alarm), and extended support for shutters/covers (experimental)
 
 Description:
@@ -12,7 +12,7 @@ developmentMode = false
 function QuickApp:onInit()
     self:debug("")
     self:debug("------- HC3 <-> MQTT BRIDGE")
-    self:debug("Version: 1.0.226")
+    self:debug("Version: 1.0.227")
     self:debug("(!) IMPORTANT NOTE FOR THOSE USERS WHO USED THE QUICKAPP PRIOR TO 1.0.191 VERSION: Your Home Assistant dashboards and automations need to be reconfigured with new enity ids. This is a one-time effort that introduces a relatively \"small\" inconvenience for the greater good (a) introduce long-term stability so Home Assistant entity duplicates will not happen in certain scenarios (b) entity id namespaces are now syncronized between Fibaro and Home Assistant ecosystems")
 
     self:turnOn()
