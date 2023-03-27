@@ -110,6 +110,12 @@ function Switch.isSupported(fibaroDevice)
     end
 end
 
+function Switch:init(fibaroDevice)
+    if self:fibaroDeviceTypeMatchesWith("com.fibaro.soundSwitch") then
+        self.icon = "&#128264;" -- 🔈
+    end
+end
+
 -----------------------------------
 -- BINARY LIGHT
 -----------------------------------
@@ -216,7 +222,8 @@ function BinarySensor:init(fibaroDevice)
             self.icon = "&#128682;" -- 🚪
         elseif self:fibaroDeviceTypeMatchesWith("com.fibaro.windowSensor") then
             self.subtype = "window"
-            self.icon = "&#129003;" -- 🟫
+            -- self.icon = "&#129003;" -- 🟫
+            self.icon = "&#129695;" -- 🪟
         else
             print("[BinarySensor.init] Uknown doow/window sensor " .. self.id .. " " .. self.name)
         end
