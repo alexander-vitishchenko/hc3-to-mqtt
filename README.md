@@ -64,7 +64,7 @@ Note: I'm using my mother's PayPal (Tatjana H.) to support both project and my p
    * Energy and power meters
    * Charge level sensors for battery-powered devices
    * Lights - binary, dimmers and RGBW (no RGB for now)
-   * Switches
+   * Switches - binary and sound
    * Remote Controllers, where each key is binded to automation triggers visible in Home Assistant GUI
    * Thermostats (limited support for a few known vendors) 
 <br>
