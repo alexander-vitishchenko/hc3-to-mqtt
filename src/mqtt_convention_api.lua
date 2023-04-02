@@ -267,29 +267,52 @@ function MqttConventionHomeAssistant:onDeviceNodeCreated(deviceNode)
     ---- COVER
     ------------------------------------------
     if haEntity.type == "cover" then
-        msg.state_topic = self:setterTopic(haEntity, "state")
+        if haEntity.supportsBinary then
+            if haEntity.supportsRead then
+                msg.state_topic = self:setterTopic(haEntity, "state")
+                msg.state_open = "Opened"
+                msg.state_closed = "Closed"
+                msg.state_opening = "Opening"
+                msg.state_closing = "Closing"
+            end
+            if haEntity.supportsWrite then
+                msg.command_topic = self:setterTopic(haEntity, "action")
+                msg.payload_open = "open"
+                msg.payload_close = "close"
+                msg.payload_stop = "stop"
+            end
+        end
 
         if haEntity.supportsMultilevel then
-            msg.position_topic = self:getterTopic(haEntity, "value")
-            msg.position_template = "{{ value_json.value }}"
-
-            msg.set_position_topic = self:setterTopic(haEntity, "value")
-
-            msg.position_open = 100
-            msg.position_closed = 0
+            if haEntity.supportsRead then
+                msg.position_topic = self:getterTopic(haEntity, "value")
+                msg.position_template = "{{ value_json.value }}"
+            end
+            if haEntity.supportsWrite then
+                msg.set_position_topic = self:setterTopic(haEntity, "value")
+            end
         end
 
-        if haEntity.supportsOpen or haEntity.supportsClose or haEntity.supportsStop then
-            msg.command_topic = self:setterTopic(haEntity, "action")
-            msg.payload_open = "open"
-            msg.payload_close = "close"
-            msg.payload_stop = "stop"
 
-            msg.state_open = "Opened"
-            msg.state_closed = "Closed"
-            msg.state_opening = "Opening"
-            msg.state_closing = "Closing"
+        if haEntity.supportsTilt then
+            if haEntity.supportsTiltMultilevel then
+                msg.tilt_status_topic = self:getterTopic(haEntity, "value2")
+                msg.tilt_status_template = "{{ value_json.value }}"
+
+                msg.tilt_command_topic = self:setterTopic(haEntity, "value2")
+
+                msg.tilt_closed_value = 0
+                msg.tilt_opened_value = 100
+            else
+                -- Home Assistant doesn't support literal values, so need to set 0-100 integers and then use template to convert to rotateSlatsUp/rotateSlatsDown
+                msg.tilt_command_topic = self:setterTopic(haEntity, "action")
+                msg.tilt_command_template = "{% if value == 0 %}rotateSlatsDown{% elif value == 100 %}rotateSlatsUp{% else %}unsupportedByDeviceAndHomeAssistant{% endif %}"
+                msg.tilt_closed_value = 0
+                msg.tilt_opened_value = 100
+                msg.tilt_status_optimistic = true
+            end
         end
+
     end
 
     ------------------------------------------

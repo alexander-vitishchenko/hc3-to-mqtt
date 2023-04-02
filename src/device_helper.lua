@@ -15,18 +15,26 @@ __filteredFibaroDeviceIds = nil
 -----------------------------------
 --  FIBARO DEVICE TYPE CUSTOM MAPPINGS 
 -----------------------------------
-local fibaroBaseTypeOverride = {
+local fibaroBaseTypeAliases = {
+    -- MANDATORY FOR "FIBARO SHUTTER" TYPE IDENTIFICATION
     ["com.fibaro.FGR"] = "com.fibaro.baseShutter",
-    ["com.fibaro.FGMS001"] = "com.fibaro.motionSensor",
+    -- MANDATORY FOR "FIBARO WALL PLUG" TYPE IDENTIFICATION
     ["com.fibaro.FGWP"] = "com.fibaro.binarySwitch"
 }
 
-local fibaroTypeOverride = { 
+local fibaroTypeAliases = { 
+    -- optional for device type readability
     ["com.fibaro.FGKF601"] = "com.fibaro.keyFob",
+    -- optional for device type readability
     ["com.fibaro.FGD212"] = "com.fibaro.dimmer",
+    -- optional for device type readability
+    ["com.fibaro.FGMS001"] = "com.fibaro.motionSensor",
+    -- optional for device type readability
     ["com.fibaro.FGMS001v2"] = "com.fibaro.motionSensor",
+    -- optional for device type readability
     ["com.fibaro.FGFS101"] = "com.fibaro.floodSensor",
-    ["com.fibaro.FGWP102"] = "com.fibaro.binarySwitch"
+    -- optional for device type readability
+    ["com.fibaro.FGWP102"] = "com.fibaro.binarySwitch",
 }
 
 function cleanDeviceCache()
@@ -126,6 +134,109 @@ end
 
 function __addSimulatedDevices()
     ----------- SIMULATED ZIGBEE RGBW DEVICE
+
+    __addSimulatedDevice("{\
+  \"id\": 998,\
+  \"name\": \"VR baie vitrée\",\
+  \"roomID\": 221,\
+  \"view\": [\
+    {\
+      \"assetsPath\": \"dynamic-plugins/com.fibaro.remoteBaseShutter\",\
+      \"name\": \"com.fibaro.remoteBaseShutter\",\
+      \"translatesPath\": \"/assets/i18n/com.fibaro.remoteBaseShutter\",\
+      \"type\": \"ts\"\
+    },\
+    {\
+      \"assetsPath\": \"dynamic-plugins/favorite-positions\",\
+      \"name\": \"favorite-positions\",\
+      \"translatesPath\": \"/assets/i18n/favorite-positions\",\
+      \"type\": \"ts\"\
+    }\
+  ],\
+  \"type\": \"com.fibaro.remoteBaseShutter\",\
+  \"baseType\": \"com.fibaro.remoteController\",\
+  \"enabled\": true,\
+  \"visible\": true,\
+  \"isPlugin\": false,\
+  \"parentId\": 46,\
+  \"viewXml\": false,\
+  \"hasUIView\": true,\
+  \"configXml\": false,\
+  \"interfaces\": [\
+    \"favoritePosition\",\
+    \"nice\",\
+    \"niceMono\"\
+  ],\
+  \"properties\": {\
+    \"buttonHold\": 5000,\
+    \"categories\": [\
+      \"remotes\"\
+    ],\
+    \"configuration\": true,\
+    \"dead\": false,\
+    \"deadReason\": \"\",\
+    \"deviceControlType\": 53,\
+    \"deviceIcon\": 218,\
+    \"deviceRole\": \"BlindsWithoutPositioning\",\
+    \"deviceState\": \"Configured\",\
+    \"favoritePositions\": [\
+      {\
+        \"label\": \"Favorite position 1\",\
+        \"name\": \"FavoritePosition1\",\
+        \"value\": 50\
+      }\
+    ],\
+    \"favoritePositionsNativeSupport\": true,\
+    \"icon\": {\
+      \"path\": \"/assets/icon/fibaro/com.fibaro.remoteBaseShutter_garage/com.fibaro.remoteBaseShutter_garage.png\",\
+      \"source\": \"HC\"\
+    },\
+    \"inputToChannelMap\": {\
+      \"close\": [\
+        3\
+      ],\
+      \"open\": [\
+        1\
+      ],\
+      \"partialOpen1\": [],\
+      \"step\": [],\
+      \"stop\": [\
+        2\
+      ],\
+      \"toggleCh1\": [],\
+      \"toggleCh2\": [],\
+      \"turnOffCh1\": [],\
+      \"turnOffCh2\": [],\
+      \"turnOnCh1\": [],\
+      \"turnOnCh2\": [],\
+      \"unsupported\": []\
+    },\
+    \"log\": \"\",\
+    \"logTemp\": \"\",\
+    \"manufacturer\": \"NICE\",\
+    \"model\": \"\",\
+    \"niceId\": 13,\
+    \"niceProtocol\": \"Opera0\",\
+    \"numberOfSupportedButtons\": 8,\
+    \"saveLogs\": true,\
+    \"supportedDeviceRoles\": [\
+      \"BlindsWithoutPositioning\",\
+      \"VenetianBlinds\",\
+      \"Awning\"\
+    ],\
+    \"userDescription\": \"\"\
+  },\
+  \"actions\": {\
+    \"close\": 0,\
+    \"open\": 0,\
+    \"setFavoritePosition\": 1,\
+    \"stop\": 0\
+  },\
+  \"created\": 1649487581,\
+  \"modified\": 1671310429,\
+  \"sortOrder\": 15\
+}")
+
     __addSimulatedDevice("{\
   \"id\": 35,\
   \"name\": \"Levá\",\
@@ -936,16 +1047,16 @@ function createAndAddDeviceNodeToHierarchyById(id)
 end
 
 function enrichFibaroDeviceWithMetaInfo(fibaroDevice)
-    -- OVERRIDE BASE TYPE IF NECESSARY
-    local overrideBaseType = fibaroBaseTypeOverride[fibaroDevice.baseType]
-    if overrideBaseType then 
-        fibaroDevice.baseType = overrideBaseType
+    -- OVERRIDE BASE TYPE WITH ALIAS (IF IT EXISTS)
+    local baseTypeAlias = fibaroBaseTypeAliases[fibaroDevice.baseType]
+    if baseTypeAlias then 
+        fibaroDevice.baseType = baseTypeAlias
     end
 
-    -- OVERRIDE TYPE IF NECESSARY
-    local overrideType = fibaroTypeOverride[fibaroDevice.type]
-    if overrideType then 
-        fibaroDevice.type = overrideType
+    -- OVERRIDE TYPE WITH ALIAS (IF IT EXISTS)
+    local typeAlias = fibaroTypeAliases[fibaroDevice.type]
+    if typeAlias then 
+        fibaroDevice.type = typeAlias
     end
 
     fibaroDevice.roomName = tostring(fibaro.getRoomNameByDeviceID(fibaroDevice.id))
@@ -964,6 +1075,9 @@ function fibaroDeviceHasInterface(fibaroDevice, interface)
 end
 function fibaroDeviceHasAction(fibaroDevice, action)
     return (fibaroDevice.actions[action] ~= nil)
+end
+function fibaroDeviceHasProperty(fibaroDevice, property)
+    return (fibaroDevice.properties[property] ~= nil)
 end
 
 -- *** rename to __identifyDeviceNodeAndItsChildren

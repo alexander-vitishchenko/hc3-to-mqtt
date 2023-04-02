@@ -1,9 +1,8 @@
---[[ RELEASE NOTES FOR 1.0.229
-Summary: Added support for sound switch (alarm), and extended support for shutters/covers (experimental)
+--[[ RELEASE NOTES FOR 1.0.230
+Summary: Added tilt support for cover device type (experimental)
 
 Description:
-- Added Aeotec sound switch (alarm) support
-- Enabled support for Fibaro shutters to use open/close/stop actions, even the device firmware misses to advertise the possibility these actions
+- Added tilt support for cover device type (experimental)
 - Further codebase maintainability and logging improvements
 ]]--
 
@@ -12,7 +11,7 @@ developmentMode = false
 function QuickApp:onInit()
     self:debug("")
     self:debug("------- HC3 <-> MQTT BRIDGE")
-    self:debug("Version: 1.0.229")
+    self:debug("Version: 1.0.230")
     self:debug("(!) IMPORTANT NOTE FOR THOSE USERS WHO USED THE QUICKAPP PRIOR TO 1.0.191 VERSION: Your Home Assistant dashboards and automations need to be reconfigured with new enity ids. This is a one-time effort that introduces a relatively \"small\" inconvenience for the greater good (a) introduce long-term stability so Home Assistant entity duplicates will not happen in certain scenarios (b) entity id namespaces are now syncronized between Fibaro and Home Assistant ecosystems")
 
     self:turnOn()
@@ -278,6 +277,7 @@ function QuickApp:__publishDeviceProperties(fibaroDevice)
     self:simulatePropertyUpdate(fibaroDevice, "dead", fibaroDevice.properties.dead)
     self:simulatePropertyUpdate(fibaroDevice, "state", fibaroDevice.properties.state)
     self:simulatePropertyUpdate(fibaroDevice, "value", fibaroDevice.properties.value)
+    self:simulatePropertyUpdate(fibaroDevice, "value2", fibaroDevice.properties.value2)
     self:simulatePropertyUpdate(fibaroDevice, "heatingThermostatSetpoint", fibaroDevice.properties.heatingThermostatSetpoint)
     self:simulatePropertyUpdate(fibaroDevice, "thermostatMode", fibaroDevice.properties.thermostatMode)
     self:simulatePropertyUpdate(fibaroDevice, "energy", fibaroDevice.properties.energy)

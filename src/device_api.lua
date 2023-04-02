@@ -66,6 +66,7 @@ function PrototypeEntity:setProperty(propertyName, params)
             print("Unexpected value: " .. json.encode(event))
         end
     elseif propertyName == "action" then
+        print("FUNCTION CALL: \"" .. params[1] .. "\", with NO PARAMS for device #" .. self.id)
         fibaro.call(self.id, params[1])
     else
         local firstPart = string.upper(string.sub(propertyName, 1, 1))
@@ -90,6 +91,10 @@ end
 function PrototypeEntity:fibaroDeviceHasAction(action)
     return fibaroDeviceHasAction(self.sourceDeviceNode.fibaroDevice, action)
 end
+function PrototypeEntity:fibaroDeviceHasProperty(property)
+    return fibaroDeviceHasProperty(self.sourceDeviceNode.fibaroDevice, property)
+end
+
 -----------------------------------
 -- BINARY SWITCH
 -----------------------------------
@@ -222,8 +227,8 @@ function BinarySensor:init(fibaroDevice)
             self.icon = "&#128682;" -- 🚪
         elseif self:fibaroDeviceTypeMatchesWith("com.fibaro.windowSensor") then
             self.subtype = "window"
-            -- self.icon = "&#129003;" -- 🟫
-            self.icon = "&#129695;" -- 🪟
+            self.icon = "&#129003;" -- 🟫
+            --self.icon = "&#129695;" -- 🪟
         else
             print("[BinarySensor.init] Uknown doow/window sensor " .. self.id .. " " .. self.name)
         end
@@ -313,18 +318,16 @@ end
 -----------------------------------
 Cover = inheritFrom(PrototypeEntity)
 Cover.type = "cover"
-Cover.supportsBinary = false
+Cover.supportsBinary = true
 Cover.supportsMultilevel = false
 Cover.supportsRead = true
 Cover.supportsWrite = true
 
--- Some of the Fibaro shutter devices do not advertise the possibility to use open/close/stop actions even if they do, so it is now always enabled
-Cover.supportsOpen = true
-Cover.supportsClose = true
-Cover.supportsStop = true
+Cover.supportsTilt = false
+Cover.supportsTiltMultilevel = false
 
 function Cover.isSupported(fibaroDevice)
-    if fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.baseShutter") or fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.remoteBaseShutter") then
+    if fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.baseShutter") or fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.remoteBaseShutter") or fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.rollerShutter") then
         return true
     else 
         return false
@@ -332,21 +335,18 @@ function Cover.isSupported(fibaroDevice)
 end
 
 function Cover:init(fibaroDevice) 
-    if self:fibaroDeviceHasAction("setValue") then
+    -- CHECK of 0..100 positioning is supported in addition to open/close/stop actions
+    if self:fibaroDeviceHasAction("setValue") or self:fibaroDeviceHasProperty("value") then
         self.supportsMultilevel = true
     end
-    --[[
-    -- Some of the Fibaro shutter devices do not advertise the possibility to use open/close/stop actions even if they do, so it is now always enabled
-    if self:fibaroDeviceHasAction("open") then
-        self.supportsOpen = true
+
+    -- CHECK FOR TILT SUPPORT
+    if self:fibaroDeviceHasAction("setValue2") or self:fibaroDeviceHasProperty("value2") or fibaroDevice.id == 499 then
+        self.supportsTilt = true
+        self.supportsTiltMultilevel = true
+    elseif self:fibaroDeviceHasAction("rotateSlatsUp") or self:fibaroDeviceHasAction("rotateSlatsDown") or self:fibaroDeviceHasAction("stopSlats") then
+        self.supportsTilt = true
     end
-    if self:fibaroDeviceHasAction("close") then
-        self.supportsClose = true
-    end
-    if self:fibaroDeviceHasAction("stop") then
-        self.supportsStop = true
-    end
-    ]]--
 end
 
 -----------------------------------
@@ -361,7 +361,7 @@ Thermostat.supportsWrite = true
 Thermostat.icon = "&#127965;&#65039;" -- 🏝️
 
 function Thermostat.isSupported(fibaroDevice)
-    if fibaroDevice.baseType == "com.fibaro.hvacSystem" or fibaroDevice.type == "com.fibaro.hvacSystem" then 
+    if fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.hvacSystem") then 
         return true 
     else 
         return false
@@ -402,7 +402,7 @@ RemoteController = inheritFrom(MultilevelSensor)
 RemoteController.subtype = "remoteController"
 
 function RemoteController.isSupported(fibaroDevice)
-    if ((fibaroDevice.baseType == "com.fibaro.remoteController") or ( fibaroDevice.baseType == "com.fibaro.remoteSceneController") or ( fibaroDevice.type == "com.fibaro.remoteController") or (fibaroDevice.type == "com.fibaro.remoteSceneController"))      then
+    if fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.remoteController") or fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.remoteSceneController") then
         return true
     else 
         return false
@@ -423,7 +423,7 @@ RemoteControllerKey.icon = "&#9654;&#65039;" -- ▶️
 --RemoteControllerKey.icon = "&#128377;&#65039;" -- 🕹️
 
 function RemoteControllerKey.isSupported(fibaroDevice)
-    if (fibaroDevice.baseType == "com.alexander_vitishchenko.remoteKey") then
+    if fibaroDeviceTypeMatchesWith(fibaroDevice, "com.alexander_vitishchenko.remoteKey") then
         return true
     else 
         return false
