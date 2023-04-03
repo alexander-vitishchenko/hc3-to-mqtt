@@ -1,5 +1,5 @@
 # "Fibaro Home Center 3" to "Home Assistant" integration
-Manage your Fibaro HC3/HCL devices from Home Assistant.
+Manage your Fibaro HC3, HCL and Yubii Home devices from Home Assistant.
 
 ## ❗ Warning
 I had to move out of Kyiv to Berlin because of Russian's war against Ukraine => feature requests implementation take more time as my capacity is not the same as it used to be.
