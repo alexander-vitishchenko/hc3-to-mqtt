@@ -1,4 +1,4 @@
---[[ RELEASE NOTES FOR 1.0.230
+--[[ RELEASE NOTES FOR 1.0.232
 Summary: Added tilt support for cover device type (experimental)
 
 Description:
@@ -11,7 +11,7 @@ developmentMode = false
 function QuickApp:onInit()
     self:debug("")
     self:debug("------- HC3 <-> MQTT BRIDGE")
-    self:debug("Version: 1.0.230")
+    self:debug("Version: 1.0.232")
     self:debug("(!) IMPORTANT NOTE FOR THOSE USERS WHO USED THE QUICKAPP PRIOR TO 1.0.191 VERSION: Your Home Assistant dashboards and automations need to be reconfigured with new enity ids. This is a one-time effort that introduces a relatively \"small\" inconvenience for the greater good (a) introduce long-term stability so Home Assistant entity duplicates will not happen in certain scenarios (b) entity id namespaces are now syncronized between Fibaro and Home Assistant ecosystems")
 
     self:turnOn()
@@ -370,7 +370,7 @@ function QuickApp:processFibaroHc3Events(data)
         lastRefresh = data.last
     end
 
-    if events and #events>0 then 
+    if events and #events > 0 then 
         for i, v in ipairs(events) do
             self:dispatchFibaroEventToMqtt(v)
         end
@@ -380,7 +380,6 @@ end
 function QuickApp:simulatePropertyUpdate(fibaroDevice, propertyName, value)
     if value ~= nil then
         local event = createFibaroEventPayload(fibaroDevice, propertyName, value)
-        event.simulation = true
         self:dispatchFibaroEventToMqtt(event)
     end
 end
@@ -415,7 +414,7 @@ function QuickApp:dispatchFibaroEventToMqtt(event)
     local deviceNode = getDeviceNodeById(fibaroDeviceId)
 
     if (deviceNode) then
-        -- process events for devices that are required to be known to the QuickApp
+        -- process events for devices that are required to be known to the QuickApp 
         if deviceNode.included then
             -- process events for devices that are included by user filter criteria
             local haEntity = deviceNode.identifiedHaEntity
@@ -494,6 +493,7 @@ function QuickApp:dispatchDevicePropertyUpdatedEvent(deviceNode, event)
         propertyName = "unknown"
     end
 
+    -- *** move logic to device
     if ((haEntity.type == "binary_sensor") or (haEntity.type == "switch"))
            and 
         (propertyName == "value") 
@@ -513,8 +513,24 @@ function QuickApp:dispatchDevicePropertyUpdatedEvent(deviceNode, event)
 
     event.data.newValue = (type(value) == "number" and value or tostring(value))
     
-    for i, j in ipairs(self.mqttConventions) do
-        j:onFibaroEvent(deviceNode, event)
+    local targetEvent = haEntity:overrideFibaroEventIfNeeded(event)
+
+    if targetEvent then
+        for _, j in ipairs(self.mqttConventions) do
+            if (type(targetEvent) == 'table' and #targetEvent > 0) then
+                --print("Start array processing for original event " .. "#" .. tostring(#targetEvent) .. ": " .. json.encode(event))
+                for _, i in ipairs(targetEvent) do
+                    j:onFibaroEvent(deviceNode, i)
+                    --print("E " .. deviceNode.id .. " processed as array element: " .. json.encode(i))
+                end
+            else
+                j:onFibaroEvent(deviceNode, targetEvent)
+                --print("E " .. deviceNode.id .. " processed as a single element: " .. json.encode(targetEvent))
+            end
+        end
+    else
+        --print("E " .. deviceNode.id .. " skipped: " .. json.encode(event))
+        -- event will be skipped as indicated by device's event parser
     end
 end
 

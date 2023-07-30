@@ -170,21 +170,6 @@ function table_contains_value(tab, val)
     return false
 end
 
-function createFibaroEventPayload(device, propertyName, newValue) 
-    -- THIS IS FIBARO EVENT FORMAT => DO NOT CHANGE VARIABLE NAMES
-    local payload = {
-        data = {
-            id = device.id,
-            property = propertyName,
-            newValue = newValue
-        },
-        type = "DevicePropertyUpdatedEvent",
-        created = os.time()
-    }
-
-    return payload
-end
-
 function isEmptyString(s)
   return s == nil or s == ""
 end

@@ -1364,3 +1364,20 @@ function printDeviceNodeHierarchy(deviceNode, level)
     end
 
 end
+
+function createFibaroEventPayload(device, propertyName, newValue) 
+    -- THIS IS FIBARO EVENT FORMAT => DO NOT CHANGE VARIABLE NAMES
+    local payload = {
+        data = {
+            id = device.id,
+            property = propertyName,
+            newValue = newValue,
+            simulation = true
+
+        },
+        type = "DevicePropertyUpdatedEvent",
+        created = os.time()
+    }
+
+    return payload
+end

@@ -269,11 +269,11 @@ function MqttConventionHomeAssistant:onDeviceNodeCreated(deviceNode)
     if haEntity.type == "cover" then
         if haEntity.supportsBinary then
             if haEntity.supportsRead then
-                msg.state_topic = self:setterTopic(haEntity, "state")
-                msg.state_open = "Opened"
-                msg.state_closed = "Closed"
-                msg.state_opening = "Opening"
-                msg.state_closing = "Closing"
+                msg.state_topic = self:getterTopic(haEntity, "state")
+                msg.state_open = Cover.stateOpen
+                msg.state_closed = Cover.stateClosed
+                msg.state_opening = Cover.stateOpening
+                msg.state_closing = Cover.stateClosing
             end
             if haEntity.supportsWrite then
                 msg.command_topic = self:setterTopic(haEntity, "action")
@@ -287,6 +287,8 @@ function MqttConventionHomeAssistant:onDeviceNodeCreated(deviceNode)
             if haEntity.supportsRead then
                 msg.position_topic = self:getterTopic(haEntity, "value")
                 msg.position_template = "{{ value_json.value }}"
+                msg.position_closed = 0
+                msg.position_open = 99
             end
             if haEntity.supportsWrite then
                 msg.set_position_topic = self:setterTopic(haEntity, "value")

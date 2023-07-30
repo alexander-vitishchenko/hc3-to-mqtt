@@ -22,7 +22,6 @@ function PrototypeEntity.isSupported(fibaroDevice)
     print("'isSupported' function is mandatory for implementation")
 end
 
--- *** MERGE "INIT" WITH "NEW"?
 function PrototypeEntity:new(deviceNode)
     local status, haEntity = pcall(clone, self)
 
@@ -46,6 +45,16 @@ end
 
 function PrototypeEntity:init(fibaroDevice)
     -- "init" function could be optionally overriden by subclasses implementation
+end 
+
+function PrototypeEntity:overrideFibaroEventIfNeeded(event)
+    -- default implementation that doesn't change the incoming Fibaro event
+    return self:overrideCustomFibaroEventIfNeeded(event)
+end
+
+function PrototypeEntity:overrideCustomFibaroEventIfNeeded(event)
+    -- "overrideCustomFibaroEventIfNeeded" function could be optionally overriden by subclasses implementation
+    return event
 end 
 
 -- *** rename setProperty to process HA event
@@ -326,6 +335,12 @@ Cover.supportsWrite = true
 Cover.supportsTilt = false
 Cover.supportsTiltMultilevel = false
 
+Cover.stateOpen = "Open"
+Cover.stateClosed = "Closed"
+Cover.stateOpening = "Opening"
+Cover.stateClosing = "Closing"
+Cover.stateUnknown = "Unknown"
+
 function Cover.isSupported(fibaroDevice)
     if fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.baseShutter") or fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.remoteBaseShutter") or fibaroDeviceTypeMatchesWith(fibaroDevice, "com.fibaro.rollerShutter") then
         return true
@@ -347,6 +362,33 @@ function Cover:init(fibaroDevice)
     elseif self:fibaroDeviceHasAction("rotateSlatsUp") or self:fibaroDeviceHasAction("rotateSlatsDown") or self:fibaroDeviceHasAction("stopSlats") then
         self.supportsTilt = true
     end
+end
+
+function Cover:overrideCustomFibaroEventIfNeeded(originalEvent)
+    if originalEvent.data.property == "state" and originalEvent.data.newValue == "Unknown" then
+        return nil -- no event to be emitted HC3 => HA
+    end
+
+    if originalEvent.data.property == "value" then
+        local value = originalEvent.data.newValue
+        local newStateEvent
+        if value == 0 then
+            -- generate additional event for indicating cover state
+            newStateEvent = createFibaroEventPayload(self.sourceDeviceNode.fibaroDevice, "state", Cover.stateClosed)
+        elseif value >= 99 then
+            newStateEvent = createFibaroEventPayload(self.sourceDeviceNode.fibaroDevice, "state", Cover.stateOpen)
+        elseif value < 50 then
+            newStateEvent = createFibaroEventPayload(self.sourceDeviceNode.fibaroDevice, "state", Cover.stateClosing)
+        elseif value >= 50 then
+            newStateEvent = createFibaroEventPayload(self.sourceDeviceNode.fibaroDevice, "state", Cover.stateOpening)
+        else
+            newStateEvent = createFibaroEventPayload(self.sourceDeviceNode.fibaroDevice, "state", Cover.stateUnknown)
+        end
+        
+        return { originalEvent, newStateEvent }
+    end
+
+    return originalEvent
 end
 
 -----------------------------------
