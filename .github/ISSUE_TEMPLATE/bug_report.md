@@ -28,6 +28,7 @@ Steps to reproduce the behavior like:
 **Attach QuickApp logs**
 - Open Fibaro Home Center 3 in a web-browser
 - Home Screen > Logging (left-bottom panel) > enable filter by QuickApp id
+- Stop and then start the QuickApp
 - Copy log records starting from "------- HC3 <-> MQTT BRIDGE"
 
 **Attach Home Assistant logs**
