@@ -59,7 +59,7 @@ Note: I'm using my mother's PayPal (Tatjana H.) to support both project and my p
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate?hosted_button_id=7FXBMQKCWESLN).
 
 ## Already supported device types:
-   * Z-Wave hardware (with no Zigbee or Nice support at the moment)
+   * Z-Wave hardware, and experimental Zigbee & Nice devices support
    * Sensors - Fibaro Motion Sensor, Fibaro Universal Sensor, Fibaro Flood Sensor, Fibaro Smoke/Fire Sensor, most of the generic sensors to measure temperature, humidity, brightness and so on
    * Energy and power meters
    * Charge level sensors for battery-powered devices
