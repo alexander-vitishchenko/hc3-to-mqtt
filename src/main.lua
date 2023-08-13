@@ -1,8 +1,8 @@
---[[ RELEASE NOTES FOR 1.0.232
-Summary: Added tilt support for cover device type (experimental)
+--[[ RELEASE NOTES FOR 1.0.233
+Summary: Extending cover/shutter device with a broader hardware and properties support
 
 Description:
-- Added tilt support for cover device type (experimental)
+- Added more edge cases supported for cover/shutter device type
 - Further codebase maintainability and logging improvements
 ]]--
 
@@ -11,7 +11,7 @@ developmentMode = false
 function QuickApp:onInit()
     self:debug("")
     self:debug("------- HC3 <-> MQTT BRIDGE")
-    self:debug("Version: 1.0.232")
+    self:debug("Version: 1.0.233")
     self:debug("(!) IMPORTANT NOTE FOR THOSE USERS WHO USED THE QUICKAPP PRIOR TO 1.0.191 VERSION: Your Home Assistant dashboards and automations need to be reconfigured with new enity ids. This is a one-time effort that introduces a relatively \"small\" inconvenience for the greater good (a) introduce long-term stability so Home Assistant entity duplicates will not happen in certain scenarios (b) entity id namespaces are now syncronized between Fibaro and Home Assistant ecosystems")
 
     self:turnOn()
@@ -214,7 +214,7 @@ function QuickApp:discoverDeviceHierarchy()
         self:debug("All is good - default filter applied, where only enabled and visible devices are used")
     end
 
-    fibaroDevices = getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
+    fibaroDevices = getDeviceHierarchyByFilter(customDeviceFilterJsonStr, self)
 
     return fibaroDevices
 end
@@ -420,7 +420,6 @@ function QuickApp:dispatchFibaroEventToMqtt(event)
             local haEntity = deviceNode.identifiedHaEntity
             if haEntity then
                 if (eventType == "DevicePropertyUpdatedEvent") then
-                    --self:trace(json.encode(event))
                     return self:dispatchDevicePropertyUpdatedEvent(deviceNode, event) 
                 elseif (eventType == "CentralSceneEvent") then
                     -- convert to DevicePropertyUpdatedEvent event, so we reuse the existing value dispatch mechanism rather than reinventing a wheel
@@ -501,7 +500,6 @@ function QuickApp:dispatchDevicePropertyUpdatedEvent(deviceNode, event)
         -- Fibaro uses state/value fields inconsistently for 
         -- 1. binary sensors. Replace "value" with "state" field
         -- 2. Sound switch (Aetec). Replace "value" with "state" field
-
         event.data.property = "state"
     end
 
@@ -518,18 +516,14 @@ function QuickApp:dispatchDevicePropertyUpdatedEvent(deviceNode, event)
     if targetEvent then
         for _, j in ipairs(self.mqttConventions) do
             if (type(targetEvent) == 'table' and #targetEvent > 0) then
-                --print("Start array processing for original event " .. "#" .. tostring(#targetEvent) .. ": " .. json.encode(event))
                 for _, i in ipairs(targetEvent) do
                     j:onFibaroEvent(deviceNode, i)
-                    --print("E " .. deviceNode.id .. " processed as array element: " .. json.encode(i))
                 end
             else
                 j:onFibaroEvent(deviceNode, targetEvent)
-                --print("E " .. deviceNode.id .. " processed as a single element: " .. json.encode(targetEvent))
             end
         end
     else
-        --print("E " .. deviceNode.id .. " skipped: " .. json.encode(event))
         -- event will be skipped as indicated by device's event parser
     end
 end

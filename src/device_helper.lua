@@ -12,6 +12,8 @@ identifiedHaEntitiesAmount = 0
 __allFibaroDevices = nil
 __filteredFibaroDeviceIds = nil
 
+__logger = nil
+
 -----------------------------------
 --  FIBARO DEVICE TYPE CUSTOM MAPPINGS 
 -----------------------------------
@@ -44,10 +46,16 @@ function cleanDeviceCache()
     allFibaroDevicesAmount = 0
     filteredFibaroDevicesAmount = 0
     identifiedHaEntitiesAmount = 0
+
+    __allFibaroDevices = nil
+    __filteredFibaroDeviceIds = nil
+    __logger = nil
 end
 
-function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
+function getDeviceHierarchyByFilter(customDeviceFilterJsonStr, logger)
     cleanDeviceCache()
+
+    __logger = logger
 
     deviceFilter = 
         {
@@ -70,17 +78,17 @@ function getDeviceHierarchyByFilter(customDeviceFilterJsonStr)
         }
 
     if (not isEmptyString(customDeviceFilterJsonStr)) then
-        print("")
-        print("(!) Apply custom device filter: " .. tostring(customDeviceFilterJsonStr))
-        print("--> Supported JSON format: " .. "{\"filter\":\"baseType\", \"value\":[\"com.fibaro.actor\"]},   {\"filter\":\"deviceID\", \"value\":[41,42]},   { MORE FILTERS MAY GO HERE }")
-        print("--> See the list of Fibaro API filter types at https://manuals.fibaro.com/content/other/FIBARO_System_Lua_API.pdf => \"fibaro:getDevicesId(filters)\"")
-        print("")
+        __logger:debug("")
+        __logger:debug("(!) Apply custom device filter: " .. tostring(customDeviceFilterJsonStr))
+        __logger:debug("--> Supported JSON format: " .. "{\"filter\":\"baseType\", \"value\":[\"com.fibaro.actor\"]},   {\"filter\":\"deviceID\", \"value\":[41,42]},   { MORE FILTERS MAY GO HERE }")
+        __logger:debug("--> See the list of Fibaro API filter types at https://manuals.fibaro.com/content/other/FIBARO_System_Lua_API.pdf => \"fibaro:getDevicesId(filters)\"")
+        __logger:debug("")
 
         local customDeviceFilterJson = json.decode("{ filters: [ " .. customDeviceFilterJsonStr .. "] }") 
 
         shallowInsertTo(customDeviceFilterJson.filters, deviceFilter.filters)
     else
-        print("Default device filter is used: " .. json.encode(deviceFilter))
+        __logger:debug("Default device filter is used: " .. json.encode(deviceFilter))
     end
 
 
@@ -1009,7 +1017,7 @@ function removeDeviceNodeFromHierarchyById(id)
     if (ind) then
         table.remove(sourceListForDeviceNode, ind)
     else
-        print("WARNING: Device node " .. id .. " was not removed from cache")
+        __logger:warning("WARNING: Device node " .. id .. " was not removed from cache")
     end
 
     deviceNodeById[id] = nil
@@ -1034,7 +1042,7 @@ function createAndAddDeviceNodeToHierarchyById(id)
     local newDeviceNode = appendNodeByFibaroDevice(newFibaroDevice)
 
     if #filteredFibaroDeviceIds == 0 then
-        print("Device " .. id .. " doesn't match to filter criteria and thus skipped") 
+        __logger:debug("Device " .. id .. " doesn't match to filter criteria and thus skipped") 
     else
         newDeviceNode.included = true
 
@@ -1356,7 +1364,7 @@ function printDeviceNodeHierarchy(deviceNode, level)
     end
 
     if (level > 0) then
-        print(deviceDescription)
+        __logger:debug(deviceDescription)
     end
 
     for _, deviceChildNode in pairs(deviceNode.childNodeList) do

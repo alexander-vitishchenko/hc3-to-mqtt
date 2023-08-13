@@ -19,7 +19,7 @@ PrototypeEntity = {
 } 
 
 function PrototypeEntity.isSupported(fibaroDevice)
-    print("'isSupported' function is mandatory for implementation")
+    __logger:error("'isSupported' function is mandatory for implementation")
 end
 
 function PrototypeEntity:new(deviceNode)
@@ -66,23 +66,23 @@ function PrototypeEntity:setProperty(propertyName, params)
         local value = params[1]
 
         if (value == "true") then
-            print("Turn ON for device #" .. self.id)
+            __logger:trace("Turn ON for device #" .. self.id)
             fibaro.call(self.id, "turnOn")
         elseif (value == "false") then
-            print("Turn OFF for device #" .. self.id)
+            __logger:trace("Turn OFF for device #" .. self.id)
             fibaro.call(self.id, "turnOff")
         else
-            print("Unexpected value: " .. json.encode(event))
+            __logger:warning("Unexpected value: " .. json.encode(event))
         end
     elseif propertyName == "action" then
-        print("FUNCTION CALL: \"" .. params[1] .. "\", with NO PARAMS for device #" .. self.id)
+        __logger:trace("FUNCTION CALL: \"" .. params[1] .. "\", with NO PARAMS for device #" .. self.id)
         fibaro.call(self.id, params[1])
     else
         local firstPart = string.upper(string.sub(propertyName, 1, 1))
         local secondPart = string.sub(propertyName, 2, string.len(propertyName))
         local functionName = "set" .. firstPart .. secondPart
 
-        print("FUNCTION CALL: \"" .. functionName .. "\", with PARAMS \"" .. json.encode(params) .. "\" for device #" .. self.id)
+        __logger:trace("FUNCTION CALL: \"" .. functionName .. "\", with PARAMS \"" .. json.encode(params) .. "\" for device #" .. self.id)
 
         fibaro.call(self.id, functionName, unpack(params))
     end
@@ -236,10 +236,11 @@ function BinarySensor:init(fibaroDevice)
             self.icon = "&#128682;" -- 🚪
         elseif self:fibaroDeviceTypeMatchesWith("com.fibaro.windowSensor") then
             self.subtype = "window"
-            self.icon = "&#129003;" -- 🟫
+            self.icon = "&#11036;" -- ⬜
+            --self.icon = "&#129003;" -- 🟫
             --self.icon = "&#129695;" -- 🪟
         else
-            print("[BinarySensor.init] Uknown doow/window sensor " .. self.id .. " " .. self.name)
+            __logger:warning("[BinarySensor.init] Unknown doow/window sensor " .. self.id .. " " .. self.name)
         end
     elseif self:fibaroDeviceTypeMatchesWith("com.fibaro.fireDetector") or self:fibaroDeviceTypeMatchesWith("com.fibaro.fireSensor") then
         self.subtype = "heat"
@@ -257,8 +258,7 @@ function BinarySensor:init(fibaroDevice)
         self.subtype = "safety"
     else
         -- use generic sensor 
-
-        -- DEBUG: print("[BinarySensor.init] No sensor specialization for #" .. tostring(self.id) .. " \"" .. tostring(self.name) .. "\" that has type " .. fibaroDevice.baseType .. "-" .. fibaroDevice.type .. ", thus using default sensor class")
+        __logger:trace("[BinarySensor.init] No sensor specialization for #" .. tostring(self.id) .. " \"" .. tostring(self.name) .. "\" that has type " .. fibaroDevice.baseType .. "-" .. fibaroDevice.type .. ", thus using default sensor class")
     end
 end
 
@@ -269,7 +269,7 @@ MultilevelSensor = inheritFrom(GenericSensor)
 MultilevelSensor.type = "sensor"
 MultilevelSensor.supportsBinary = false
 MultilevelSensor.supportsMultilevel = true
-MultilevelSensor.bridgeUnitOfMeasurement = "'unit of measurement' needs to be initialized"
+MultilevelSensor.unitOfMeasurement = "'unit of measurement' needs to be initialized"
 
 function MultilevelSensor.isSupported(fibaroDevice)
     if GenericSensor.isGenericSensor(fibaroDevice) and fibaroDevice.properties.unit then
@@ -280,16 +280,16 @@ function MultilevelSensor.isSupported(fibaroDevice)
 end
 
 function MultilevelSensor:init(fibaroDevice)
-    self.bridgeUnitOfMeasurement = fibaroDevice.properties.unit
+    self.unitOfMeasurement = fibaroDevice.properties.unit
 
-    -- identify subtype 
-    -- ToDo *** refactor with mappings for a bit higher performance?
+    -- identify subtype and convert Fibaro to Home Assisstant unit of measurement when needed
     if self:fibaroDeviceTypeMatchesWith("com.fibaro.temperatureSensor") then
         self.subtype = "temperature"
-        self.bridgeUnitOfMeasurement = "°" .. fibaroDevice.properties.unit
+        self.unitOfMeasurement = "°" .. fibaroDevice.properties.unit
         self.icon = "&#127777;&#65039;" -- 🌡️
     elseif self:fibaroDeviceTypeMatchesWith("com.fibaro.lightSensor") then
         self.subtype = "illuminance"
+        self.unitOfMeasurement = "lx"
         self.icon = "&#9728;&#65039;" -- ☀️
     elseif self:fibaroDeviceTypeMatchesWith("com.fibaro.humiditySensor") then 
         self.subtype = "humidity"
@@ -318,7 +318,7 @@ function MultilevelSensor:init(fibaroDevice)
     else
         -- use generic sensor 
 
-        -- DEBUG: print("[MultilevelSensor.init] No sensor specialization for #" .. tostring(self.id) .. " \"" .. tostring(self.name) .. "\" that has type " .. fibaroDevice.baseType .. "-" .. fibaroDevice.type .. " and measured in '" .. tostring(fibaroDevice.properties.unit) .. "' unit, thus using default sensor class")
+        __logger:trace("[MultilevelSensor.init] No sensor specialization for #" .. tostring(self.id) .. " \"" .. tostring(self.name) .. "\" that has type " .. fibaroDevice.baseType .. "-" .. fibaroDevice.type .. " and measured in '" .. tostring(fibaroDevice.properties.unit) .. "' unit, thus using default sensor class")
     end
 end
 
@@ -356,7 +356,7 @@ function Cover:init(fibaroDevice)
     end
 
     -- CHECK FOR TILT SUPPORT
-    if self:fibaroDeviceHasAction("setValue2") or self:fibaroDeviceHasProperty("value2") or fibaroDevice.id == 499 then
+    if self:fibaroDeviceHasAction("setValue2") or self:fibaroDeviceHasProperty("value2") then
         self.supportsTilt = true
         self.supportsTiltMultilevel = true
     elseif self:fibaroDeviceHasAction("rotateSlatsUp") or self:fibaroDeviceHasAction("rotateSlatsDown") or self:fibaroDeviceHasAction("stopSlats") then
@@ -365,12 +365,27 @@ function Cover:init(fibaroDevice)
 end
 
 function Cover:overrideCustomFibaroEventIfNeeded(originalEvent)
-    if originalEvent.data.property == "state" and originalEvent.data.newValue == "Unknown" then
-        return nil -- no event to be emitted HC3 => HA
+    local property = originalEvent.data.property
+    local value = originalEvent.data.newValue
+
+    if property == "state" then
+        if (value == Cover.stateOpen) or (value == Cover.stateOpening) or (value == Cover.stateClosed) or (value == Cover.stateClosing) then
+            return originalEvent
+        elseif value == "Opened" then
+            -- convert Fibaro's "Opened" to "Open" state
+            return createFibaroEventPayload(self.sourceDeviceNode.fibaroDevice, "state", Cover.stateOpen)
+        elseif value == "Unknown" then
+            __logger:warning("\"Unknown\" state for cover #" .. tostring(self.id) .. ". This doesn't necessary mean a problem, and the QuickApp will attempt to transmit based on cover \"position level\" instead")
+            return nil -- no event to be transmitted from Fibaro HC3 to Home Assistant, i.e. no need to spam HA when Fibaro device firmware lack proper state support and use our own heurostics with "position" field in below
+        else 
+            __logger:warning("Unexpected \"" .. tostring(value) .. "\" cover's state for device #" .. tostring(self.id))
+            return nil
+        end
     end
 
-    if originalEvent.data.property == "value" then
-        local value = originalEvent.data.newValue
+    if property == "value" then
+        -- This is a workaround until Fibaro's firmware gets full support for "state" property
+        -- Description: When Fibaro's cover/shutter uses a position level - we need to generate an additional Open/Closed/etc events, as Fibaro's firmware often sends "Uknown" state
         local newStateEvent
         if value == 0 then
             -- generate additional event for indicating cover state

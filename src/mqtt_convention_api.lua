@@ -206,8 +206,8 @@ function MqttConventionHomeAssistant:onDeviceNodeCreated(deviceNode)
             msg.device_class = haEntity.subtype
         end
         -- *** refactor?
-        if (PrototypeEntity.bridgeUnitOfMeasurement ~= haEntity.bridgeUnitOfMeasurement) then
-            msg.unit_of_measurement = haEntity.bridgeUnitOfMeasurement
+        if (PrototypeEntity.unitOfMeasurement ~= haEntity.unitOfMeasurement) then
+            msg.unit_of_measurement = haEntity.unitOfMeasurement
         end
 
         -- Energy meter requires extra properties
@@ -525,7 +525,7 @@ function MqttConventionHomie:onDeviceNodeCreated(deviceNode)
                 datatype = "integer",
                 settable = device.supportsWrite,
                 retained = true,
-                unit = device.bridgeUnitOfMeasurement
+                unit = device.unitOfMeasurement
             }
         end
     end
