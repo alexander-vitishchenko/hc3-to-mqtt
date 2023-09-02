@@ -1,4 +1,4 @@
---[[ RELEASE NOTES FOR 1.0.233
+--[[ RELEASE NOTES FOR 1.0.234
 Summary: Extending cover/shutter device with a broader hardware and properties support
 
 Description:
@@ -11,7 +11,7 @@ developmentMode = false
 function QuickApp:onInit()
     self:debug("")
     self:debug("------- HC3 <-> MQTT BRIDGE")
-    self:debug("Version: 1.0.233")
+    self:debug("Version: 1.0.234")
     self:debug("(!) IMPORTANT NOTE FOR THOSE USERS WHO USED THE QUICKAPP PRIOR TO 1.0.191 VERSION: Your Home Assistant dashboards and automations need to be reconfigured with new enity ids. This is a one-time effort that introduces a relatively \"small\" inconvenience for the greater good (a) introduce long-term stability so Home Assistant entity duplicates will not happen in certain scenarios (b) entity id namespaces are now syncronized between Fibaro and Home Assistant ecosystems")
 
     self:turnOn()
@@ -550,10 +550,12 @@ function QuickApp:dispatchDeviceCreatedEvent(fibaroDeviceId)
 end
 
 function QuickApp:dispatchDeviceModifiedEvent(deviceNode)
-    self:debug("Fibaro device " .. deviceNode.id .. " got modified => its old configuration to be removed, and then the new one added by the QuickApp")
+    -- Previous logic that is expected to work, but HA doesn't handle remove & crate entity events
+    --self:debug("Fibaro device " .. deviceNode.id .. " got modified => its old configuration to be removed, and then the new one added by the QuickApp")
+    --self:dispatchDeviceRemovedEvent(deviceNode)
+    --self:dispatchDeviceCreatedEvent(deviceNode.id)
 
-    self:dispatchDeviceRemovedEvent(deviceNode)
-
+    self:debug("Fibaro device " .. deviceNode.id .. " got modified => its old configuration will be updated")    
     self:dispatchDeviceCreatedEvent(deviceNode.id)
 end
 

@@ -375,7 +375,7 @@ function Cover:overrideCustomFibaroEventIfNeeded(originalEvent)
             -- convert Fibaro's "Opened" to "Open" state
             return createFibaroEventPayload(self.sourceDeviceNode.fibaroDevice, "state", Cover.stateOpen)
         elseif value == "Unknown" then
-            __logger:warning("\"Unknown\" state for cover #" .. tostring(self.id) .. ". This doesn't necessary mean a problem, and the QuickApp will attempt to transmit based on cover \"position level\" instead")
+            __logger:warning("\"Unknown\" state for cover #" .. tostring(self.id) .. ". This doesn't necessary mean a problem, and the QuickApp will attempt to transmit cover's state based on \"position level\" instead")
             return nil -- no event to be transmitted from Fibaro HC3 to Home Assistant, i.e. no need to spam HA when Fibaro device firmware lack proper state support and use our own heurostics with "position" field in below
         else 
             __logger:warning("Unexpected \"" .. tostring(value) .. "\" cover's state for device #" .. tostring(self.id))
