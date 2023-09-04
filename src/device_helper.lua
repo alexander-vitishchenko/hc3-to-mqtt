@@ -1191,21 +1191,24 @@ end
 
 function createLinkedMultilevelSensorDevice(fromDevice, linkedProperty)
     local linkedUnit
-    local sensorTypeSuffix = "Sensor"
+    local defaultSensorType = "Sensor"
+    local sensorTypeSuffix = defaultSensorType
     if (linkedProperty == "energy") then
         linkedUnit = "kWh"
-        sensorTypeSuffix = "Meter"
+        sensorTypeSuffix = "Energy"
     elseif (linkedProperty == "power") then
         linkedUnit = "W"
-        sensorTypeSuffix = "Meter"
+        sensorTypeSuffix = "Power"
     elseif (linkedProperty == "batteryLevel") then
         linkedUnit = "%"
+        sensorTypeSuffix = "Battery"
     end
 
-    local newLinkedFibaroSensor = createLinkedFibaroDevice(fromDevice, linkedProperty, linkedUnit)
+    local newName = fromDevice.name .. " - " .. sensorTypeSuffix
+    local newLinkedFibaroSensor = createLinkedFibaroDevice(fromDevice, newName, linkedProperty, linkedUnit)
 
     newLinkedFibaroSensor.baseType = "com.fibaro.multilevelSensor"
-    newLinkedFibaroSensor.type = "com.fibaro." .. linkedProperty .. sensorTypeSuffix
+    newLinkedFibaroSensor.type = "com.fibaro." .. linkedProperty .. defaultSensorType
 
     return newLinkedFibaroSensor
 end
@@ -1214,9 +1217,10 @@ function createLinkedKey(fromDevice, keyId, keyAttribute)
     local keyAttribute = string.lower(keyAttribute)
 
     local action = keyId .. "-" .. keyAttribute
+    local newName = fromDevice.name .. " - " .. keyId .. " - " .. keyAttribute
 
     --local newFibaroKey = createLinkedFibaroDevice(fromDevice, "value", nil)
-    local newFibaroKey = createLinkedFibaroDevice(fromDevice, action, nil)
+    local newFibaroKey = createLinkedFibaroDevice(fromDevice, newName, action, nil)
     newFibaroKey.baseType = "com.alexander_vitishchenko.remoteKey"
     newFibaroKey.type = newFibaroKey.baseType
     newFibaroKey.keyId = keyId
@@ -1225,10 +1229,10 @@ function createLinkedKey(fromDevice, keyId, keyAttribute)
     return newFibaroKey
 end
 
-function createLinkedFibaroDevice(fromDevice, linkedProperty, linkedUnit)
+function createLinkedFibaroDevice(fromDevice, newName, linkedProperty, linkedUnit)
     local newFibaroLinkedDevice = {
         id = fromDevice.id .. "_" .. linkedProperty,
-        name = fromDevice.name,  
+        name = newName,
         roomID = fromDevice.roomID,
         roomName = fromDevice.roomName,
         parentId = fromDevice.id,
