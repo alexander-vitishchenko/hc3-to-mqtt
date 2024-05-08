@@ -1,11 +1,7 @@
 # "Fibaro Home Center 3" to "Home Assistant" integration
 Manage your Fibaro HC3, HCL and Yubii Home devices from Home Assistant.
 
-## ❗ Warning
-I had to move out of Kyiv to Berlin because of Russian's war against Ukraine => feature requests implementation take more time as my capacity is not the same as it used to be.
-
-## ❗ For those who used QuickApp prior to 1.0.191 version
-Your Home Assistant dashboards and automations need to be reconfigured with new enity ids, after installing the latest version. This is a one-time effort that introduces a relatively small inconvenience for the greater good (a) introduce long-term stability so Home Assistant entity duplicates will not happen any more, in certain scenarious (b) entity identity namespace is now syncronized between Fibaro and Home Assistant ecosystems.
+Note on alternative Fibaro <=> Home Assistant integration: Consider <a href="https://www.home-assistant.io/integrations/fibaro/">https://www.home-assistant.io/integrations/fibaro/</a> that might be simpler to configure, and if it provides a sufficient support for your device types.
 
 ## How to use
 <ol>
