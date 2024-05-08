@@ -1,7 +1,7 @@
 # "Fibaro Home Center 3" to "Home Assistant" integration
 Manage your Fibaro HC3, HCL and Yubii Home devices from Home Assistant.
 
-Note on alternative Fibaro to Home Assistant connector: consider <a href="https://www.home-assistant.io/integrations/fibaro/">https://www.home-assistant.io/integrations/fibaro/</a> that might be simpler to configure, and if it provides a sufficient support for your device types.
+Note on alternative Fibaro to Home Assistant connector: consider <a href="https://www.home-assistant.io/integrations/fibaro/">https://www.home-assistant.io/integrations/fibaro/</a> that might be simpler to configure, if it provides a sufficient support for your device types.
 
 ## How to use
 <ol>
