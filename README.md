@@ -46,13 +46,7 @@ Note on alternative Fibaro to Home Assistant connector: consider <a href="https:
 </ol>
 
 ## Your donations are welcome!
-I can add new device support by buying new hardware for testing and allocating more time to programming during weekends.
-\
-\
-Note: I'm using my mother's PayPal (Tatjana H.) to support both project and my parents :-)
-\
-\
-[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate?hosted_button_id=7FXBMQKCWESLN).
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate?hosted_button_id=QA88EYA93QQ3W).
 
 ## Already supported device types:
    * Z-Wave hardware, and experimental Zigbee & Nice devices support
