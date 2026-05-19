@@ -8,11 +8,17 @@ this project loosely follows [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
-- **Heartbeat interval QuickApp variable**: code now reads `heartbeatInterval`
-  (matching the README) instead of the previously-broken `hbinterval`. Existing
-  installs that already set `heartbeatInterval` start working immediately;
-  installs that worked around the bug by setting `hbinterval` need to rename
-  the variable.
+- **Heartbeat interval QuickApp variable**: code and README now agree on the
+  variable name. The variable is `hbInterval` (and `hbIncludeMeta` for the
+  metadata opt-out). Short names are used deliberately because Fibaro limits
+  QuickApp variable-name length — `heartbeatInterval` / `heartbeatIncludeMeta`
+  were too long to add in the HC3 UI. The previously-shipped code read the
+  mismatched `hbinterval`, so the interval was never actually configurable.
+- **Recurring "Variable X not found" log warnings**: optional QuickApp
+  variables (`hbInterval`, `hbIncludeMeta`, `mqttClientId`, `deviceFilter*`)
+  are now read through a new `QuickApp:getOptionalVariable` helper that does
+  not trigger Fibaro's warning when the variable is absent. Previously the
+  heartbeat logged two warnings on every interval (e.g. every 60 seconds).
 - **`return nul` typo** in `device_helper.lua` (`__identifyHaEntity`) replaced
   with `return nil`.
 - **Undefined `deviceHierarchy` reference** in
@@ -48,9 +54,12 @@ this project loosely follows [Semantic Versioning](https://semver.org/).
   sensors being mis-classified as humidity.
 
 ### Added
-- **`heartbeatIncludeMeta` QuickApp variable**. Set to `false` to omit IP /
+- **`hbIncludeMeta` QuickApp variable**. Set to `false` to omit IP /
   version / device counts from the heartbeat payload (privacy / shared-broker
   scenarios).
+- **`QuickApp:getOptionalVariable` helper** reads QuickApp variables straight
+  from `self.properties.quickAppVariables`, so optional/unset variables are
+  read silently instead of producing a Fibaro "Variable not found" warning.
 - **`sanitizeMqttUrl` helper** in `tools.lua` strips `user:pass@` from URLs
   before logging.
 - **Heartbeat lifecycle generation counter**. Reconnects no longer leave a
@@ -62,7 +71,7 @@ this project loosely follows [Semantic Versioning](https://semver.org/).
   notes.
 - **README**: navigation TOC, TLS / `mqtts://` recommendation, heartbeat
   privacy section, build instructions, security considerations.
-- **Input validation** for `mqttKeepAlive` and `heartbeatInterval`
+- **Input validation** for `mqttKeepAlive` and `hbInterval`
   (non-positive / non-numeric values fall back to defaults with a warning).
 - **`pcall` around `identifyLocalIpAddressForHc3`** at module load time so a
   transient HC3 API issue doesn't prevent the QuickApp from starting.

@@ -21,7 +21,7 @@
 Publishes a periodic status message to MQTT so Home Assistant can monitor whether the HC3 bridge is alive and responsive.
 
 - **Topic:** `homeassistant/hc3-heartbeat`
-- **Interval:** configurable via QuickApp variable `heartbeatInterval` (default: 60 seconds)
+- **Interval:** configurable via QuickApp variable `hbInterval` (default: 60 seconds)
 - **Payload example:**
 ```json
 {
@@ -37,14 +37,16 @@ Publishes a periodic status message to MQTT so Home Assistant can monitor whethe
 
 #### Configuring the heartbeat interval
 
-The heartbeat interval can be configured via the QuickApp variable `heartbeatInterval` in your Fibaro HC3:
+The heartbeat interval can be configured via the QuickApp variable `hbInterval` in your Fibaro HC3:
 
 1. Open the QuickApp in your Fibaro HC3 web interface
 2. Go to the **Variables** section
-3. Add a new variable: name = `heartbeatInterval`, value = number of seconds (e.g. `30`, `60`, `120`)
+3. Add a new variable: name = `hbInterval`, value = number of seconds (e.g. `30`, `60`, `120`)
 4. Save and restart the QuickApp
 
 If the variable is not set, the default interval of **60 seconds** is used. Lower values give faster detection of connection issues, but generate more MQTT traffic. A value of `30` is a good balance for most setups.
+
+> **Note on variable names.** Fibaro limits QuickApp variable-name length, so this fork uses the short names `hbInterval` and `hbIncludeMeta` rather than `heartbeatInterval` / `heartbeatIncludeMeta`. These variables are optional — if you don't add them, the defaults are used and **no warnings are logged**.
 
 #### Privacy: opt out of metadata in heartbeat
 
@@ -52,7 +54,7 @@ By default the heartbeat payload contains the HC3's local IP, the QuickApp versi
 
 | Name | Value | Effect |
 |------|-------|--------|
-| `heartbeatIncludeMeta` | `false` | Strips `version`, `devices`, `entities`, `ip` from the heartbeat payload (only `status`, `timestamp`, `uptime` remain) |
+| `hbIncludeMeta` | `false` | Strips `version`, `devices`, `entities`, `ip` from the heartbeat payload (only `status`, `timestamp`, `uptime` remain) |
 
 #### Heartbeat vs availability topic
 
@@ -137,8 +139,8 @@ For ambiguous units (e.g. `%` is used by humidity, battery, position) the mappin
         <ul>
             <li> "<b>mqttUrl</b>" - URL for connecting to MQTT broker, e.g. <code>mqtt://192.168.1.10:1883</code> or <code>mqtts://192.168.1.10:8883</code> for TLS. <b>Use <code>mqtts://</code> whenever possible</b> — plain <code>mqtt://</code> sends username/password unencrypted over the network.</li>
             <li> "<b>mqttUsername</b>" and "<b>mqttPassword</b>" (optional) - user credentials for MQTT authentication</li>
-            <li> "<b>heartbeatInterval</b>" (optional) - interval in seconds for the heartbeat message (default: 60)</li>
-            <li> "<b>heartbeatIncludeMeta</b>" (optional) - set to <code>false</code> to omit IP/version/device counts from heartbeat (privacy)</li>
+            <li> "<b>hbInterval</b>" (optional) - interval in seconds for the heartbeat message (default: 60)</li>
+            <li> "<b>hbIncludeMeta</b>" (optional) - set to <code>false</code> to omit IP/version/device counts from heartbeat (privacy)</li>
             <li> "<b>deviceFilter</b>" (optional) - apply your filters for Fibaro HC3 device autodiscovery in case you need to limit the number of devices to be bridged with Home Assistant. <br>
             <details>
                <summary>Click here to see example</summary>
@@ -177,7 +179,7 @@ python3 scripts/build_fqa.py --check
 
 - **Use TLS.** Configure `mqttUrl` with the `mqtts://` scheme and a TLS-enabled broker. Plain `mqtt://` sends credentials and device state in clear text.
 - **MQTT broker authorization.** The bridge publishes device state under `homeassistant/+/+/`. Treat read access to your broker as device-state access; restrict ACLs accordingly.
-- **Heartbeat metadata.** The default heartbeat reveals the HC3's local IP, QuickApp version and device counts. Set the QuickApp variable `heartbeatIncludeMeta=false` if these are sensitive in your environment.
+- **Heartbeat metadata.** The default heartbeat reveals the HC3's local IP, QuickApp version and device counts. Set the QuickApp variable `hbIncludeMeta=false` if these are sensitive in your environment.
 - **Credentials in `mqttUrl`.** Avoid embedding `user:pass@` directly in `mqttUrl`. Use the dedicated `mqttUsername` / `mqttPassword` QuickApp variables — those are anonymized in logs.
 - **QuickApp variables are not encrypted at rest.** Anyone with admin access to the HC3 can read them. Use a dedicated MQTT account with the minimum required ACL.
 

@@ -311,12 +311,13 @@ table.indexOf = function(t, object)
 end
 
 function getCompositeQuickAppVariable(quickApp, variableName)
-    local compositeValue
-    compositeValue = quickApp:getVariable(variableName)
+    -- Uses getOptionalVariable so unset deviceFilter/deviceFilter2..10
+    -- variables do not spam the Fibaro log with "Variable not found" warnings.
+    local compositeValue = quickApp:getOptionalVariable(variableName)
 
     if isNotEmptyString(compositeValue) then
-        for i=2, 10 do
-            local value = quickApp:getVariable(variableName .. i)
+        for i = 2, 10 do
+            local value = quickApp:getOptionalVariable(variableName .. i)
             if isNotEmptyString(value) then
                 compositeValue = compositeValue .. value
             else
