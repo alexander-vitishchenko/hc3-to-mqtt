@@ -1,7 +1,18 @@
---[[ RELEASE NOTES FOR 1.0.235-fork-5
-Summary: Retained MQTT commands are ignored and cleared
+--[[ RELEASE NOTES FOR 1.0.235-fork-6
+Summary: The bridge reconnects by itself after errors
 
 Description:
+- A failed poll of the HC3 events feed (e.g. "Host not found") turned the bridge off
+  for good; it is now retried, and after 5 failures in a row MQTT and HC3 are reconnected
+- An error while processing HC3 events no longer stops the polling chain
+- An MQTT connection that closes without an error event (e.g. broker restart) is reconnected
+- Reconnect delay grows from 10 s to at most 5 min while the problem persists
+- A manual turn off is not undone by a pending reconnect; turnOn on a live connection
+  replaces it instead of opening a second one
+- Events of a replaced MQTT client and replies to an earlier polling chain are ignored,
+  so a reconnect never leaves duplicate connections or polling chains behind
+
+Earlier fork changes (1.0.235-fork-5):
 - A retained command was replayed on every (re)connect and switched devices on again;
   it is now ignored and removed from the broker
 
@@ -31,9 +42,11 @@ Earlier fork changes (1.0.235-fork-1):
 - Forked from alexander-vitishchenko/hc3-to-mqtt v1.0.235
 ]]--
 
-local QUICKAPP_VERSION = "1.0.235-fork-5"
+local QUICKAPP_VERSION = "1.0.235-fork-6"
 local DEFAULT_HEARTBEAT_INTERVAL = 60
 local DEFAULT_RECONNECT_DELAY_MS = 10000
+local MAX_RECONNECT_DELAY_MS = 300000
+local MAX_HC3_FETCH_RETRIES = 5
 local DEFAULT_KEEPALIVE = 60
 local FAST_POLL_DELAY_MS = 50
 local SLOW_POLL_DELAY_MS = 1000
@@ -47,7 +60,7 @@ function QuickApp:onInit()
     self:debug("")
     self:debug("------- HC3 <-> MQTT BRIDGE")
     self:debug("Version: " .. QUICKAPP_VERSION)
-    self:debug("Fork changes: heartbeat/alive MQTT message, S1/S2 and remote buttons as device triggers")
+    self:debug("Fork changes: heartbeat/alive MQTT message, S1/S2 and remote buttons as device triggers, automatic reconnect after errors")
     self:debug("(!) IMPORTANT NOTE FOR THOSE USERS WHO USED THE QUICKAPP PRIOR TO 1.0.191 VERSION: Your Home Assistant dashboards and automations need to be reconfigured with new entity ids. This is a one-time effort that introduces a relatively \"small\" inconvenience for the greater good (a) introduce long-term stability so Home Assistant entity duplicates will not happen in certain scenarios (b) entity id namespaces are now synchronized between Fibaro and Home Assistant ecosystems")
 
     -- Create optional variables with defaults if absent (avoids "Variable not found" warnings on every start)
@@ -61,11 +74,22 @@ function QuickApp:onInit()
     self:turnOn()
 end
 
-function QuickApp:turnOn() 
+-- turnOn/turnOff are what the HC3 UI and the REST API
+-- (/api/devices/<id>/action/turnOn|turnOff) call, e.g. from a Home Assistant watchdog.
+-- Internal recovery uses reconnectLater() instead.
+function QuickApp:turnOn()
+    self:cancelScheduledReconnect()
+    self.reconnectAttempts = 0
+    if self.mqtt then
+        -- a second connection next to a live one would duplicate every event
+        self:disconnectFromMqttAndHc3()
+    end
     self:establishMqttConnection()
 end
 
 function QuickApp:turnOff()
+    -- a manual turn off must not be undone by a pending automatic reconnect
+    self:cancelScheduledReconnect()
     self:disconnectFromMqttAndHc3()
 end
 
@@ -113,11 +137,35 @@ function QuickApp:establishMqttConnection()
                                     mqttUrl,
                                     mqttConnectionParameters)
 
-    mqttClient:addEventListener('connected', function(event) self:onConnected(event) end)
-    mqttClient:addEventListener('closed', function(event) self:onClosed(event) end)
-    mqttClient:addEventListener('message', function(event) self:onMessage(event) end)
-    mqttClient:addEventListener('error', function(event) self:onError(event) end)    
-    
+    -- Events of a client that we closed or replaced are ignored; a late
+    -- 'connected' would otherwise start a second polling chain.
+    mqttClient:addEventListener('connected', function(event)
+        if self.mqtt == mqttClient then
+            self:onConnected(event)
+        else
+            pcall(function() mqttClient:disconnect() end)
+        end
+    end)
+    mqttClient:addEventListener('closed', function(event)
+        if self.mqtt == mqttClient then
+            -- closed without us asking for it, e.g. a broker restart
+            self:onClosed(event)
+            self:reconnectLater("MQTT connection closed unexpectedly")
+        elseif self.mqtt == nil then
+            self:onClosed(event)
+        end
+    end)
+    mqttClient:addEventListener('message', function(event)
+        if self.mqtt == mqttClient then
+            self:onMessage(event)
+        end
+    end)
+    mqttClient:addEventListener('error', function(event)
+        if self.mqtt == mqttClient then
+            self:onError(event)
+        end
+    end)
+
     self.mqtt = mqttClient
 end
 
@@ -162,17 +210,32 @@ end
 
 function QuickApp:disconnectFromMqttAndHc3()
     self.hc3ConnectionEnabled = false
-    self:closeMqttConnection()
+
+    local client = self.mqtt
+    if not client then
+        return
+    end
+    -- Forget the client before closing it, so its 'closed' event reads as an
+    -- intentional disconnect and does not trigger a reconnect
+    self.mqtt = nil
+    self:closeMqttConnection(client)
 end
 
-function QuickApp:closeMqttConnection()
-    for i, j in ipairs(self.mqttConventions) do
+function QuickApp:closeMqttConnection(client)
+    for _, j in ipairs(self.mqttConventions or {}) do
         if (j.mqtt ~= MqttConventionPrototype.mqtt) then
-            j:onDisconnected()
+            -- the connection may already be gone; publishing "offline" is best effort
+            local ok, err = pcall(function() j:onDisconnected() end)
+            if not ok then
+                self:warning("Could not publish offline status: " .. tostring(err))
+            end
         end
     end
 
-    self.mqtt:disconnect()
+    local ok, err = pcall(function() client:disconnect() end)
+    if not ok then
+        self:warning("Closing the MQTT connection failed: " .. tostring(err))
+    end
 end
 
 function QuickApp:onClosed(event)
@@ -186,15 +249,41 @@ function QuickApp:onError(event)
     if event.code == 2 then
         self:warning("MQTT username and/or password is possibly indicated wrongly")
     end
-    self:turnOff()
-    self:scheduleReconnectToMqtt();
+    self:reconnectLater("MQTT error")
 end
 
-function QuickApp:scheduleReconnectToMqtt()
-    fibaro.setTimeout(DEFAULT_RECONNECT_DELAY_MS, function()
+-- Internal recovery: drop the MQTT and HC3 connections and connect again later
+function QuickApp:reconnectLater(reason)
+    self:disconnectFromMqttAndHc3()
+    self:scheduleReconnectToMqtt(reason)
+end
+
+function QuickApp:scheduleReconnectToMqtt(reason)
+    self:cancelScheduledReconnect()
+
+    -- 10 s, 20 s, 40 s, ... up to 5 min while the problem persists; reset after
+    -- the first successful HC3 poll or a manual turnOn
+    self.reconnectAttempts = (self.reconnectAttempts or 0) + 1
+    local delay = math.min(DEFAULT_RECONNECT_DELAY_MS * (2 ^ (self.reconnectAttempts - 1)), MAX_RECONNECT_DELAY_MS)
+    delay = math.floor(delay)
+    self:warning((reason or "Connection lost") .. "; reconnecting in " .. math.floor(delay / 1000) .. "s (attempt " .. self.reconnectAttempts .. ")")
+
+    self.reconnectTimer = fibaro.setTimeout(delay, function()
+        self.reconnectTimer = nil
+        if self.mqtt then
+            -- someone already connected again in the meantime
+            return
+        end
         self:debug("Attempt to reconnect to MQTT...")
         self:establishMqttConnection()
     end)
+end
+
+function QuickApp:cancelScheduledReconnect()
+    if self.reconnectTimer then
+        fibaro.clearTimeout(self.reconnectTimer)
+        self.reconnectTimer = nil
+    end
 end
 
 function QuickApp:onMessage(event)
@@ -219,12 +308,21 @@ function QuickApp:onConnected(event)
     self:debug("")
     self:debug("------- Connected to MQTT/Home Assistant")
 
-    for _, mqttConvention in ipairs(self.mqttConventions) do
-        mqttConvention.mqtt = self.mqtt
-        mqttConvention:onConnected()
-    end
+    -- Discovery reads the HC3 API; if that fails the bridge must not stay
+    -- connected to MQTT without delivering anything
+    local ok, err = pcall(function()
+        for _, mqttConvention in ipairs(self.mqttConventions) do
+            mqttConvention.mqtt = self.mqtt
+            mqttConvention:onConnected()
+        end
 
-    self:discoverDevicesAndPublishToMqtt()
+        self:discoverDevicesAndPublishToMqtt()
+    end)
+    if not ok then
+        self:error("Device discovery failed: " .. tostring(err))
+        self:reconnectLater("Device discovery failed")
+        return
+    end
 
     self.hc3ConnectionEnabled = true
     self:scheduleHc3EventsFetcher()
@@ -256,7 +354,7 @@ end
         "status": "online",
         "timestamp": "2025-01-15T14:30:00Z",
         "uptime": 3600,
-        "version": "1.0.235-fork-5",
+        "version": "1.0.235-fork-6",
         "devices": 42,
         "entities": 58,
         "ip": "192.168.1.100"
@@ -424,14 +522,22 @@ local hc3HttpClient = net.HTTPClient()
 
 function QuickApp:scheduleHc3EventsFetcher()
     self.gotWarning = false
-    
-    self:scheduleAnotherPollingForHc3()
+    self.hc3FetchFailures = 0
+
+    -- Bump the generation so a polling chain of an earlier connection stops
+    -- instead of running next to this one
+    self.pollGeneration = (self.pollGeneration or 0) + 1
+    self:scheduleAnotherPollingForHc3(self.pollGeneration)
 
     self:debug("")
     self:debug("------- Connected to Fibaro Home Center 3 events feed")
 end
 
-function QuickApp:scheduleAnotherPollingForHc3()
+function QuickApp:scheduleAnotherPollingForHc3(generation)
+    if generation ~= self.pollGeneration then
+        return
+    end
+
     if (self.hc3ConnectionEnabled) then
         local delay
         if self.gotWarning then
@@ -443,7 +549,7 @@ function QuickApp:scheduleAnotherPollingForHc3()
         end
 
         fibaro.setTimeout(delay, function()
-            self:readHc3EventAndScheduleFetcher()
+            self:readHc3EventAndScheduleFetcher(generation)
         end)
     else
         self:debug("")
@@ -451,8 +557,11 @@ function QuickApp:scheduleAnotherPollingForHc3()
     end
 end
 
-function QuickApp:readHc3EventAndScheduleFetcher()
+function QuickApp:readHc3EventAndScheduleFetcher(generation)
     -- Reliable and high-performance method to get events from Fibaro HC3 using non-blocking HTTP calls
+    if (generation ~= self.pollGeneration) or (not self.hc3ConnectionEnabled) then
+        return
+    end
 
     local requestUrl = HC3_REFRESH_STATES_URL .. "?last=" .. lastRefresh
 
@@ -461,21 +570,47 @@ function QuickApp:readHc3EventAndScheduleFetcher()
         {
         options = { },
         success=function(res)
+            if generation ~= self.pollGeneration then
+                return
+            end
             if (res and not isEmptyString(res.data)) then
-                self:processFibaroHc3Events(json.decode(res.data))
-                self:scheduleAnotherPollingForHc3()
+                local ok, err = pcall(function()
+                    self:processFibaroHc3Events(json.decode(res.data))
+                end)
+                if ok then
+                    self.hc3FetchFailures = 0
+                    self.reconnectAttempts = 0
+                    self:scheduleAnotherPollingForHc3(generation)
+                else
+                    self:onHc3FetchFailed(generation, "Error while processing Fibaro HC3 events: " .. tostring(err))
+                end
             else
                 local statusStr = (res and tostring(res.status)) or "<no response>"
                 local bodyStr = res and json.encode(res) or "<nil>"
-                self:error("Error while fetching events from Fibaro HC3. Response status: " .. statusStr .. ". Body: " .. bodyStr)
-                self:turnOff()
+                self:onHc3FetchFailed(generation, "Error while fetching events from Fibaro HC3. Response status: " .. statusStr .. ". Body: " .. bodyStr)
             end
         end,
         error=function(res)
-            self:error("Error while fetching Fibaro HC3 events " .. json.encode(res))
-            self:turnOff()
+            if generation ~= self.pollGeneration then
+                return
+            end
+            self:onHc3FetchFailed(generation, "Error while fetching Fibaro HC3 events " .. json.encode(res))
         end
     })
+end
+
+-- A single failed poll (e.g. "Host not found" while the HC3 is busy) used to
+-- turn the bridge off for good. Retry a few times, then reconnect everything.
+function QuickApp:onHc3FetchFailed(generation, message)
+    self.hc3FetchFailures = (self.hc3FetchFailures or 0) + 1
+    if self.hc3FetchFailures <= MAX_HC3_FETCH_RETRIES then
+        self:warning(message .. " (failure " .. self.hc3FetchFailures .. " of " .. MAX_HC3_FETCH_RETRIES .. ", retrying)")
+        self.gotWarning = true
+        self:scheduleAnotherPollingForHc3(generation)
+    else
+        self:error(message)
+        self:reconnectLater("Fetching HC3 events failed " .. self.hc3FetchFailures .. " times in a row")
+    end
 end
 
 function QuickApp:processFibaroHc3Events(data)

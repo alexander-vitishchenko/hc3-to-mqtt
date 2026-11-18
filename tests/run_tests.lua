@@ -56,14 +56,36 @@ api = {
         return out
     end,
 }
+-- Timers are recorded and only run when a test calls runTimers()
+timers = {}
+local nextTimerId = 0
 fibaro = {
     getRoomNameByDeviceID = function() return "Living room" end,
     getGlobalVariable = function() return nil end,
-    setTimeout = function() end,
+    setTimeout = function(ms, fn)
+        nextTimerId = nextTimerId + 1
+        timers[nextTimerId] = { ms = ms, fn = fn }
+        return nextTimerId
+    end,
+    clearTimeout = function(id) timers[id] = nil end,
     call = function(id, action, ...) fibaroCalls[#fibaroCalls + 1] = { id = id, action = action, args = {...} } end,
 }
-net = { HTTPClient = function() return { request = function() end } end }
-mqtt = { Client = { connect = function() return { addEventListener = function() end } end } }
+-- HTTP requests to the HC3 events feed are recorded; a test answers them
+httpRequests = {}
+net = { HTTPClient = function() return { request = function(_, url, opts)
+    httpRequests[#httpRequests + 1] = { url = url, opts = opts }
+end } end }
+-- Every MQTT client is recorded with its event listeners
+mqttClients = {}
+mqtt = { Client = { connect = function()
+    local c = { listeners = {}, disconnected = false, published = {} }
+    function c:addEventListener(name, fn) self.listeners[name] = fn end
+    function c:disconnect() self.disconnected = true end
+    function c:publish(topic, payload, opts) self.published[#self.published + 1] = { topic = topic, payload = payload, opts = opts } end
+    function c:subscribe() end
+    mqttClients[#mqttClients + 1] = c
+    return c
+end } }
 QuickApp = {}
 
 for _, f in ipairs({"tools", "device_api", "device_helper", "mqtt_convention_api", "main"}) do
@@ -216,6 +238,87 @@ for _, case in ipairs({
         string.format("mqttConvention=%q connects with %s%s", case.value, case.expected, ok and "" or (" (" .. tostring(err) .. ")")))
     if case.warns then check(#warnings > 0, "unknown mqttConvention is logged") end
 end
+
+-- Reconnect after errors ------------------------------------------------------
+-- Runs the timers that are pending now (not the ones they schedule)
+local function runTimers()
+    local ids = {}
+    for id in pairs(timers) do ids[#ids + 1] = id end
+    table.sort(ids)
+    for _, id in ipairs(ids) do
+        local t = timers[id]
+        if t then timers[id] = nil; t.fn() end
+    end
+end
+local function pendingTimer(ms)
+    for _, t in pairs(timers) do if t.ms == ms then return true end end
+    return false
+end
+local function lastPoll() return httpRequests[#httpRequests].opts end
+
+timers, httpRequests, mqttClients = {}, {}, {}
+local rq = newQuickApp({ mqttUrl = "mqtt://broker", hbInterval = "60" })
+rq.startTime = os.time()
+rq:turnOn()
+check(#mqttClients == 1, "turnOn opens one MQTT connection")
+mqttClients[1].listeners.connected({})
+runTimers()
+check(#httpRequests == 1, "after connecting the bridge polls the HC3 events feed")
+
+for _ = 1, 5 do
+    lastPoll().error("Host not found (authoritative)")
+    runTimers()
+end
+check(#httpRequests == 6, "a failed poll is retried 5 times (" .. #httpRequests .. " polls)")
+check(not mqttClients[1].disconnected, "MQTT stays connected while polls are retried")
+
+lastPoll().error("Host not found (authoritative)")
+check(mqttClients[1].disconnected, "the 6th failure in a row disconnects MQTT")
+check(pendingTimer(10000), "a reconnect is scheduled after 10 s")
+runTimers()
+check(#mqttClients == 2, "the bridge reconnects by itself")
+
+mqttClients[1].listeners.connected({})
+check(not rq.hc3ConnectionEnabled, "a late 'connected' of the old client is ignored")
+local polls = #httpRequests
+mqttClients[2].listeners.connected({})
+runTimers()
+check(#httpRequests == polls + 1, "only the new connection polls the HC3, no duplicate chain")
+lastPoll().success({ status = 200, data = '{"status":"IDLE","last":5,"events":[]}' })
+check(rq.reconnectAttempts == 0 and rq.hc3FetchFailures == 0, "a successful poll resets the failure and reconnect counters")
+
+runTimers()
+polls = #httpRequests
+lastPoll().success({ status = 200, data = "{not json" })
+runTimers()
+check(#httpRequests == polls + 1 and not mqttClients[2].disconnected, "an error while processing events does not stop polling")
+
+-- reconnect delay grows while the problem persists
+mqttClients[2].listeners.error({ code = 1 })
+check(pendingTimer(10000), "an MQTT error schedules a reconnect after 10 s")
+runTimers()
+check(#mqttClients == 3, "reconnected after the MQTT error")
+mqttClients[3].listeners.error({ code = 1 })
+check(pendingTimer(20000), "a second failure in a row waits 20 s")
+
+rq:turnOff()
+runTimers()
+check(#mqttClients == 3, "a manual turn off cancels the pending reconnect")
+
+rq:turnOn()
+check(#mqttClients == 4, "turnOn after a manual turn off connects again")
+mqttClients[4].listeners.connected({})
+runTimers()
+mqttClients[4].listeners.closed({})
+check(mqttClients[4].disconnected and pendingTimer(10000), "an unexpected close schedules a reconnect")
+runTimers()
+check(#mqttClients == 5, "reconnected after the unexpected close")
+
+local closedClient = mqttClients[5]
+mqttClients[5].listeners.connected({})
+rq:turnOn()
+check(closedClient.disconnected and #mqttClients == 6, "turnOn on a live connection replaces it instead of adding a second one")
+check(not pendingTimer(10000), "closing the replaced connection does not schedule a reconnect")
 
 print(fails == 0 and "ALL TESTS PASSED" or (fails .. " TEST(S) FAILED"))
 os.exit(fails == 0 and 0 or 1)

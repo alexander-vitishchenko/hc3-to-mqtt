@@ -22,7 +22,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = REPO_ROOT / "src"
-DEFAULT_FQA = REPO_ROOT / "hc3_to_mqtt_bridge-1.0.235-fork-5.fqa"
+DEFAULT_FQA = REPO_ROOT / "hc3_to_mqtt_bridge-1.0.235-fork-6.fqa"
 
 # (fqa_file_name, source_file_name, is_main)
 FILE_LAYOUT = [

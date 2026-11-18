@@ -6,8 +6,9 @@
 
 ## Contents
 
-- [Fork changes](#-fork-changes-v10235-fork-5)
+- [Fork changes](#-fork-changes-v10235-fork-6)
   - [Heartbeat / Alive message](#heartbeat--alive-message)
+  - [Automatic reconnect after errors](#automatic-reconnect-after-errors)
   - [Improved sensor device_class mapping](#improved-sensor-device_class-mapping)
   - [S1/S2 switch inputs and remote buttons as triggers](#s1s2-switch-inputs-and-remote-buttons-as-triggers)
 - [How to use](#how-to-use)
@@ -17,7 +18,7 @@
 - [Security considerations](#security-considerations)
 - [Credits](#credits)
 
-## 🔀 Fork changes (v1.0.235-fork-5)
+## 🔀 Fork changes (v1.0.235-fork-6)
 
 ### Heartbeat / Alive message
 Publishes a periodic status message to MQTT so Home Assistant can monitor whether the HC3 bridge is alive and responsive.
@@ -30,7 +31,7 @@ Publishes a periodic status message to MQTT so Home Assistant can monitor whethe
     "status": "online",
     "timestamp": "2025-01-15T14:30:00Z",
     "uptime": 3600,
-    "version": "1.0.235-fork-5",
+    "version": "1.0.235-fork-6",
     "devices": 42,
     "entities": 58,
     "ip": "192.168.1.100"
@@ -116,6 +117,17 @@ Every press is also published (non-retained) on `homeassistant/event/<fibaro-dev
 { "event_type": "central_scene", "device_id": 226, "button": 1, "action": "pressed2", "trigger": "1-pressed2" }
 ```
 
+### Automatic reconnect after errors
+The bridge recovers by itself instead of staying off until someone turns it on again:
+
+- A failed poll of the HC3 events feed (e.g. `Host not found` while the HC3 is busy) is retried up to 5 times. After that the MQTT and HC3 connections are closed and opened again.
+- An error while processing HC3 events no longer stops the polling.
+- An MQTT connection that closes without an error (e.g. a broker restart) is reconnected.
+- The reconnect delay starts at 10 seconds and doubles up to 5 minutes while the problem persists. It resets after the first successful poll.
+- A manual **turn off** in the HC3 (or via `/api/devices/<id>/action/turnOff`) stays off; a pending reconnect is cancelled. **Turn on** on a live connection replaces it rather than opening a second one, so an external watchdog can safely do off/on.
+
+> **Keep the QuickApp id when updating.** Uploading the `.fqa` as a new device gives the bridge a new id, which breaks anything that calls it by id (e.g. a Home Assistant `rest_command` for a watchdog). To keep the id, open the existing QuickApp in the HC3 editor and replace the contents of each file with the matching `src/*.lua`.
+
 ### Improved sensor device_class mapping
 Based on [Eroi69's fix](https://github.com/Eroi69/hc3-to-mqtt/commit/7bc34385f753d25f70728cb290ad9747cb31fe83). The original code determined `device_class` only from the Fibaro subtype, which missed common units. This fork maps the unit of measurement to the correct Home Assistant device_class:
 
@@ -191,7 +203,7 @@ The `.fqa` is a JSON file that bundles the Lua sources together with QuickApp me
 python3 scripts/build_fqa.py
 ```
 
-This produces `hc3_to_mqtt_bridge-1.0.235-fork-5.fqa` in the repository root, with the contents of every `src/*.lua` injected into the corresponding QuickApp file slot. The script preserves the existing QuickApp variable defaults and view layout from the previous `.fqa`. Use `--check` to verify that the committed `.fqa` is in sync with `src/` without writing.
+This produces `hc3_to_mqtt_bridge-1.0.235-fork-6.fqa` in the repository root, with the contents of every `src/*.lua` injected into the corresponding QuickApp file slot. The script preserves the existing QuickApp variable defaults and view layout from the previous `.fqa`. Use `--check` to verify that the committed `.fqa` is in sync with `src/` without writing.
 
 ```bash
 python3 scripts/build_fqa.py --check

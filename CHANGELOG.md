@@ -7,6 +7,35 @@ this project loosely follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.235-fork-6] - 2026-11-18
+
+### Fixed
+- **Bridge stayed off after a single failed HC3 poll**: an error from the HC3
+  events feed (seen as `Host not found (authoritative)` on
+  `127.0.0.1:11111/api/refreshStates`) called `turnOff()` and nothing turned
+  the bridge on again. A failed poll is now retried up to 5 times; after that
+  MQTT and HC3 are disconnected and reconnected automatically.
+- **Polling stopped after an error while processing events** (e.g. a response
+  that is not valid JSON): processing now runs in `pcall` and counts as a
+  failed poll.
+- **No reconnect after an MQTT connection closed without an error event**
+  (e.g. a broker restart): the bridge now reconnects.
+- **Device discovery errors after connecting** left MQTT connected without
+  delivering events; the bridge now disconnects and tries again later.
+
+### Changed
+- Reconnect delay grows from 10 s to at most 5 min while the problem persists
+  and resets after the first successful poll or a manual turn on.
+- A manual turn off cancels a pending automatic reconnect. Turn on on a live
+  connection replaces it instead of opening a second connection.
+- Events of a replaced MQTT client and replies to an earlier polling chain are
+  ignored, so a reconnect cannot leave duplicate connections or polling chains.
+
+### Added
+- Tests for retries, reconnects, manual turn off, unexpected close and
+  replaced connections (`tests/run_tests.lua`), with recorded timers, HTTP
+  requests and MQTT clients in the mocked runtime.
+
 ## [1.0.235-fork-5] - 2026-10-19
 
 ### Fixed
